@@ -1,0 +1,26 @@
+<section class="home">
+  <h1>Open a security audit</h1>
+  <p class="lede">
+    Paste the report id from the pull-request comment SentinelAI posted, or open the reference
+    fixture's audit to see what a result looks like.
+  </p>
+
+  <form class="row" (ngSubmit)="open()">
+    <input
+      name="reportId"
+      placeholder="Report id, e.g. 7d4e1f2a-…"
+      aria-label="Report id"
+      [ngModel]="reportId()"
+      (ngModelChange)="reportId.set($event)"
+    />
+    <button type="submit" [disabled]="!reportId().trim()">Open</button>
+  </form>
+
+  @if (demoMode) {
+    <p class="hint">Demo mode is on, so any id returns the reference fixture's audit.</p>
+  }
+
+  <button type="button" class="link" (click)="openDemo()">
+    Open the reference fixture's audit →
+  </button>
+</section>

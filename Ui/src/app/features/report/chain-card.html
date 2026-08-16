@@ -1,0 +1,96 @@
+<article class="chain">
+  <header class="chain__head">
+    <div class="chain__title">
+      <span class="rank">#{{ chain().priority }}</span>
+      <h3>
+        Reaches <code>{{ target() }}</code>
+      </h3>
+    </div>
+
+    <div class="chain__meta">
+      <span class="status" [class]="'status--' + chain().status">{{ chain().status }}</span>
+      <app-confidence-badge [level]="chain().min_confidence" />
+    </div>
+  </header>
+
+  <p class="chain__summary">
+    {{ hops().length }} step{{ hops().length === 1 ? '' : 's' }} ·
+    @if (fullyValidated()) {
+      <span class="ok">Blue validated every step</span>
+    } @else {
+      <span class="warn"> Blue validated {{ validatedCount() }} of {{ hops().length }} steps </span>
+    }
+    · weakest join is <strong>{{ chain().min_confidence }}</strong>
+  </p>
+
+  <ol class="hops">
+    @for (item of hops(); track item.hop.order) {
+      <li class="hop">
+        @if (!$first) {
+          <div class="join">
+            <span class="join__line" aria-hidden="true"></span>
+            <app-confidence-badge [level]="item.hop.edge_confidence" />
+          </div>
+        }
+
+        <div class="hop__body">
+          <div class="hop__head">
+            <span class="hop__order" aria-hidden="true">{{ item.hop.order }}</span>
+            <code class="hop__node">{{ item.hop.node_key ?? 'unknown node' }}</code>
+
+            @if (item.hop.blue_validated) {
+              <span class="check check--ok" title="Blue validated this step">validated</span>
+            } @else {
+              <span class="check check--open" title="Blue did not validate this step">
+                unvalidated
+              </span>
+            }
+          </div>
+
+          <p class="hop__technique">
+            Technique
+            <a
+              [href]="
+                'https://attack.mitre.org/techniques/' + item.hop.technique_id.replace('.', '/')
+              "
+              target="_blank"
+              rel="noopener"
+              >{{ item.hop.technique_id }}</a
+            >
+          </p>
+
+          @if (item.finding; as finding) {
+            <div class="evidence">
+              <div class="evidence__head">
+                <span class="sev" [class]="'sev--' + finding.severity">
+                  {{ severityLabel(finding.severity) }}
+                </span>
+                <span class="tool">{{ finding.source_tool }}</span>
+                @if (finding.cwe_id) {
+                  <span class="key">{{ finding.cwe_id }}</span>
+                }
+                @if (finding.cve_id) {
+                  <span class="key">{{ finding.cve_id }}</span>
+                }
+                @if (finding.redacted) {
+                  <span
+                    class="key key--redacted"
+                    title="A credential was removed from this text before any model saw it"
+                  >
+                    redacted
+                  </span>
+                }
+              </div>
+              <p class="evidence__message">{{ finding.message }}</p>
+            </div>
+          } @else {
+            <p class="evidence evidence--none">
+              No finding on this node — it is on the path because of how it connects, not because a
+              scanner reported it.
+            </p>
+          }
+        </div>
+      </li>
+    }
+  </ol>
+</article>
