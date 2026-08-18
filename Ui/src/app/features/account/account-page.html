@@ -1,0 +1,51 @@
+<div class="panel">
+  <h1>Account</h1>
+  <p class="lede">
+    Signed in as <code>{{ auth.role() }}</code> on tenant <code>{{ auth.tenantId() }}</code>.
+  </p>
+
+  @if (demoMode) {
+    <p class="gate" role="note">Demo mode — no backend is called; this only signs you out locally.</p>
+  }
+
+  <h2>Delete account</h2>
+  @if (!isAdmin) {
+    <p class="gate">Deleting the account requires the admin role.</p>
+  } @else {
+    <div class="card">
+      <p class="field-hint" style="margin: 0 0 0.75rem">
+        Permanently deletes this account and everything it owns — projects, scan jobs, stored
+        bundles, findings, the resource graph, chains and reports.
+        <strong>This cannot be undone.</strong> Nothing is soft-deleted or recoverable.
+      </p>
+
+      <div class="field">
+        <label for="confirmation">
+          Type the tenant id (<code>{{ auth.tenantId() }}</code>) to confirm
+        </label>
+        <input
+          id="confirmation"
+          name="confirmation"
+          type="text"
+          [ngModel]="confirmation()"
+          (ngModelChange)="confirmation.set($event)"
+        />
+      </div>
+
+      @if (error(); as message) {
+        <p class="error" role="alert">{{ message }}</p>
+      }
+
+      <div class="actions">
+        <button
+          type="button"
+          class="danger"
+          [disabled]="deleting() || !confirmationMatches()"
+          (click)="deleteAccount()"
+        >
+          {{ deleting() ? 'Deleting…' : 'Permanently delete account' }}
+        </button>
+      </div>
+    </div>
+  }
+</div>

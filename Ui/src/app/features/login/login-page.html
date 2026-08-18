@@ -38,5 +38,9 @@
     <button type="submit" [disabled]="submitting()">
       {{ submitting() ? 'Signing in…' : 'Sign in' }}
     </button>
+
+    <p class="register-link">
+      No account? <a routerLink="/register">Create an organisation</a>
+    </p>
   </form>
 </div>

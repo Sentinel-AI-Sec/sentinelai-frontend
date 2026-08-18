@@ -1,0 +1,62 @@
+<div class="panel">
+  <div class="card" style="max-width: 22rem; margin: 4rem auto">
+    <h1>Create your organisation</h1>
+    <p class="lede">Registers a brand-new tenant with you as its first admin.</p>
+
+    @if (demoMode) {
+      <p class="gate" role="note">Demo mode — no backend is called; this signs you in locally.</p>
+    }
+
+    <form (ngSubmit)="submit()">
+      <div class="field">
+        <label for="tenantName">Organisation name</label>
+        <input
+          id="tenantName"
+          name="tenantName"
+          type="text"
+          autocomplete="organization"
+          required
+          [ngModel]="tenantName()"
+          (ngModelChange)="tenantName.set($event)"
+        />
+      </div>
+
+      <div class="field">
+        <label for="email">Email</label>
+        <input
+          id="email"
+          name="email"
+          type="email"
+          autocomplete="username"
+          required
+          [ngModel]="email()"
+          (ngModelChange)="email.set($event)"
+        />
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <input
+          id="password"
+          name="password"
+          type="password"
+          autocomplete="new-password"
+          required
+          [ngModel]="password()"
+          (ngModelChange)="password.set($event)"
+        />
+      </div>
+
+      @if (error(); as message) {
+        <p class="error" role="alert">{{ message }}</p>
+      }
+
+      <div class="actions">
+        <button type="submit" class="primary" [disabled]="submitting()">
+          {{ submitting() ? 'Creating…' : 'Create organisation' }}
+        </button>
+        <a routerLink="/login">Already have an account?</a>
+      </div>
+    </form>
+  </div>
+</div>

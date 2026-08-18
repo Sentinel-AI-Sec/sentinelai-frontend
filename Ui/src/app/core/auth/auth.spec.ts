@@ -5,6 +5,7 @@ import {
   withInterceptors,
 } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -12,6 +13,10 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { environment } from '../config/environment';
 import { Auth } from './auth';
 import { authInterceptor } from './auth-interceptor';
+
+/** Stands in for the real login page so `router.navigate(['/login'])` has somewhere to land. */
+@Component({ template: '' })
+class StubLoginPage {}
 
 /**
  * The tenant-isolation half of SEC-42: the screen must send the token and show only the
@@ -31,7 +36,9 @@ describe('Auth and the interceptor', () => {
 
     TestBed.configureTestingModule({
       providers: [
-        provideRouter([]),
+        // A real 'login' route, not []: the refresh-failure tests below trigger
+        // `router.navigate(['/login'])`, which throws NG04002 against an empty route table.
+        provideRouter([{ path: 'login', component: StubLoginPage }]),
         // withInterceptors, or the interceptor never runs and every assertion about the
         // Authorization header passes for the wrong reason.
         provideHttpClient(withInterceptors([authInterceptor])),
@@ -125,9 +132,9 @@ describe('Auth and the interceptor', () => {
     request.flush({});
   });
 
-  it('discards a stored session whose token has already expired', () => {
-    // Restoring it would send it, get a 401 and bounce to login anyway — but only after a
-    // failed request, which reads as a broken screen rather than a finished session.
+  it('discards a stored session whose refresh token has already expired', () => {
+    // Restoring it would send it, get a 401 on every request and bounce to login anyway — but
+    // only after a failed request, which reads as a broken screen rather than a finished session.
     localStorage.setItem(
       'sentinelai.session',
       JSON.stringify({
@@ -137,6 +144,7 @@ describe('Auth and the interceptor', () => {
         role: 'analyst',
         scopes: [],
         expiresAt: new Date(Date.now() - 1000).toISOString(),
+        refreshExpiresAt: new Date(Date.now() - 1000).toISOString(),
       }),
     );
 
@@ -146,5 +154,97 @@ describe('Auth and the interceptor', () => {
     });
 
     expect(TestBed.inject(Auth).isAuthenticated()).toBe(false);
+  });
+
+  it('keeps a stored session whose access token expired but whose refresh token has not', () => {
+    // This is the case refresh() exists for: an hour-old tab should not need a fresh login just
+    // because the short-lived access token lapsed while a much longer-lived refresh token is
+    // still good.
+    localStorage.setItem(
+      'sentinelai.session',
+      JSON.stringify({
+        accessToken: 'stale',
+        refreshToken: 'still-good',
+        tenantId: 't',
+        role: 'analyst',
+        scopes: [],
+        expiresAt: new Date(Date.now() - 1000).toISOString(),
+        refreshExpiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+      }),
+    );
+
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
+    });
+
+    expect(TestBed.inject(Auth).isAuthenticated()).toBe(true);
+  });
+
+  it('on a 401, refreshes the token once and replays the original request', () => {
+    signIn();
+    TestBed.inject(HttpClient).get('/v1/scans/s1/chains').subscribe();
+
+    http.expectOne('/v1/scans/s1/chains').flush('unauthorized', { status: 401, statusText: 'Unauthorized' });
+
+    const refreshRequest = http.expectOne('/v1/auth/refresh');
+    expect(refreshRequest.request.body).toEqual({ refreshToken: 'refresh-abc' });
+    refreshRequest.flush({
+      statusCode: 200,
+      isSuccess: true,
+      message: '',
+      data: {
+        accessToken: 'jwt-rotated',
+        accessTokenExpiresAt: new Date(Date.now() + 3_600_000).toISOString(),
+        refreshToken: 'refresh-rotated',
+        refreshTokenExpiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+        tenantId: 'tenant-1',
+        role: 'analyst',
+        scopes: ['scan:read'],
+      },
+    });
+
+    const replay = http.expectOne('/v1/scans/s1/chains');
+    expect(replay.request.headers.get('Authorization')).toBe('Bearer jwt-rotated');
+    replay.flush({ items: [], next_cursor: null, limit: 50 });
+
+    expect(TestBed.inject(Auth).session()?.accessToken).toBe('jwt-rotated');
+  });
+
+  it('drops the session and stops retrying when the refresh token itself is rejected', () => {
+    signIn();
+    TestBed.inject(HttpClient).get('/v1/scans/s1/chains').subscribe({ error: () => {} });
+
+    http.expectOne('/v1/scans/s1/chains').flush('unauthorized', { status: 401, statusText: 'Unauthorized' });
+    http
+      .expectOne('/v1/auth/refresh')
+      .flush('unauthorized', { status: 401, statusText: 'Unauthorized' });
+
+    http.verify();
+    expect(TestBed.inject(Auth).isAuthenticated()).toBe(false);
+  });
+
+  it('logout revokes the refresh token server-side, then clears the session', () => {
+    signIn();
+    const auth = TestBed.inject(Auth);
+
+    auth.logout().subscribe();
+
+    const request = http.expectOne('/v1/auth/logout');
+    expect(request.request.body).toEqual({ refreshToken: 'refresh-abc' });
+    request.flush({ statusCode: 200, isSuccess: true, message: '', data: null });
+
+    expect(auth.isAuthenticated()).toBe(false);
+  });
+
+  it('logout still clears the local session if the backend call fails', () => {
+    signIn();
+    const auth = TestBed.inject(Auth);
+
+    auth.logout().subscribe();
+
+    http.expectOne('/v1/auth/logout').flush('boom', { status: 500, statusText: 'Server Error' });
+
+    expect(auth.isAuthenticated()).toBe(false);
   });
 });

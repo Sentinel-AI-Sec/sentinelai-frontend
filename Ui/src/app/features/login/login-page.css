@@ -87,3 +87,10 @@ button:disabled {
   opacity: 0.6;
   cursor: progress;
 }
+
+.register-link {
+  margin: 0.9rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  text-align: center;
+}

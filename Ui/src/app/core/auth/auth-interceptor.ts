@@ -1,13 +1,17 @@
-import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
+import { HttpErrorResponse, HttpInterceptorFn, HttpRequest } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { catchError, throwError } from 'rxjs';
+import { catchError, switchMap, throwError } from 'rxjs';
 
 import { environment } from '../config/environment';
 import { Auth } from './auth';
 
+/** `POST /v1/auth/refresh` itself must never trigger another refresh attempt on its own 401. */
+const RefreshPath = /\/v1\/auth\/refresh$/;
+
 /**
- * Attaches the bearer token to API calls, and treats a 401 as the end of the session.
+ * Attaches the bearer token to API calls; on a 401 tries the refresh token once before treating
+ * the session as over.
  *
  * Registered once in `app.config.ts` rather than added per-request. A component that had to
  * remember to attach the token is a component that will eventually forget, and the symptom —
@@ -18,23 +22,45 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const router = inject(Router);
   const session = auth.session();
 
-  const authorized =
-    session && isOurApi(request.url)
-      ? request.clone({ setHeaders: { Authorization: `Bearer ${session.accessToken}` } })
-      : request;
+  const authorized = session && isOurApi(request.url) ? attach(request, session.accessToken) : request;
 
   return next(authorized).pipe(
     catchError((error: unknown) => {
-      if (error instanceof HttpErrorResponse && error.status === 401) {
-        // The token is gone or expired. Clear it rather than let the screen keep retrying with
-        // a credential the backend has already rejected.
-        auth.logout();
-        void router.navigate(['/login']);
+      const eligibleForRefresh =
+        error instanceof HttpErrorResponse &&
+        error.status === 401 &&
+        session &&
+        isOurApi(request.url) &&
+        !RefreshPath.test(request.url);
+
+      if (!eligibleForRefresh) {
+        if (error instanceof HttpErrorResponse && error.status === 401) {
+          // No session to refresh, or the request was already the refresh call itself failing.
+          auth.dropSession();
+          void router.navigate(['/login']);
+        }
+        return throwError(() => error);
       }
-      return throwError(() => error);
+
+      // The access token has expired mid-session. Trade the refresh token for a new pair and
+      // replay the original request once with it, rather than bouncing to login over what is
+      // often just an hour-old tab.
+      return auth.refresh().pipe(
+        switchMap((refreshed) => next(attach(request, refreshed.accessToken))),
+        catchError((refreshError: unknown) => {
+          // The refresh token is itself invalid or expired — the session really is over.
+          auth.dropSession();
+          void router.navigate(['/login']);
+          return throwError(() => refreshError);
+        }),
+      );
     }),
   );
 };
+
+function attach(request: HttpRequest<unknown>, accessToken: string): HttpRequest<unknown> {
+  return request.clone({ setHeaders: { Authorization: `Bearer ${accessToken}` } });
+}
 
 /**
  * Whether a request is going to our own backend, and may therefore carry the bearer token.

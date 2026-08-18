@@ -1,0 +1,13 @@
+.panel {
+  margin: 3rem auto;
+}
+
+table {
+  width: auto;
+  min-width: 20rem;
+}
+
+table th {
+  padding-right: 1.5rem;
+  white-space: nowrap;
+}

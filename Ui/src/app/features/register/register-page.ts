@@ -1,30 +1,28 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 
 import { Auth } from '../../core/auth/auth';
 import { environment } from '../../core/config/environment';
 
 /**
- * Sign-in. The screen shows one tenant's data and only ever the signed-in tenant's, so this is
- * where that starts.
- *
- * The failure message is deliberately the same whether the email is unknown or the password is
- * wrong: telling them apart is a way to enumerate who has an account.
+ * Self-service sign-up (`POST /v1/auth/register`). Always creates a brand-new tenant with the
+ * registering user as its first admin — there is no "join an existing tenant" flow here, the
+ * same way the backend command documents it.
  */
 @Component({
-  selector: 'app-login-page',
+  selector: 'app-register-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [FormsModule, RouterLink],
-  templateUrl: './login-page.html',
-  styleUrl: './login-page.css',
+  templateUrl: './register-page.html',
+  styleUrls: ['../../shared/forms.css', './register-page.css'],
 })
-export class LoginPage {
+export class RegisterPage {
   private readonly auth = inject(Auth);
   private readonly router = inject(Router);
-  private readonly route = inject(ActivatedRoute);
 
+  readonly tenantName = signal('');
   readonly email = signal('');
   readonly password = signal('');
   readonly submitting = signal(false);
@@ -37,17 +35,16 @@ export class LoginPage {
     this.submitting.set(true);
     this.error.set(null);
 
-    this.auth.login(this.email(), this.password()).subscribe({
-      next: () => {
-        const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/';
-        void this.router.navigateByUrl(returnUrl);
-      },
+    this.auth.register(this.email(), this.password(), this.tenantName()).subscribe({
+      next: () => void this.router.navigateByUrl('/'),
       error: (err: unknown) => {
         this.submitting.set(false);
         this.error.set(
           err instanceof HttpErrorResponse && err.status === 0
             ? 'Could not reach the backend. Is the API running?'
-            : 'That email and password did not match an account.',
+            : err instanceof HttpErrorResponse && err.status === 409
+              ? 'That email is already registered.'
+              : 'Registration failed. Check the details and try again.',
         );
       },
     });

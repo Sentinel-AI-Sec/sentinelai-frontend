@@ -1,0 +1,107 @@
+<div class="panel panel--wide">
+  <h1>Debate playground</h1>
+  <p class="lede">
+    Runs the Red/Blue/Reporter debate directly over HTTP. Paste a resource graph from a scan
+    ops "run graph stage" result, or leave both fields blank to use the built-in AID-01 fixture.
+  </p>
+
+  @if (demoMode) {
+    <p class="gate" role="note">Demo mode — a canned transcript is shown, no model is called.</p>
+  } @else {
+    <p class="hint">A live run is 4–7 sequential model calls — expect this to take a minute or two.</p>
+  }
+
+  <form class="card" (ngSubmit)="run()">
+    <div class="field">
+      <label for="scanJobId">Scan job id (optional)</label>
+      <input
+        id="scanJobId"
+        name="scanJobId"
+        type="text"
+        placeholder="api-scan"
+        [ngModel]="scanJobId()"
+        (ngModelChange)="scanJobId.set($event)"
+      />
+    </div>
+
+    <div class="field">
+      <label for="resourceGraph">Resource graph (optional)</label>
+      <textarea
+        id="resourceGraph"
+        name="resourceGraph"
+        rows="6"
+        placeholder="Leave blank to use the built-in AID-01 fixture"
+        [ngModel]="resourceGraph()"
+        (ngModelChange)="resourceGraph.set($event)"
+      ></textarea>
+    </div>
+
+    @if (error(); as message) {
+      <p class="error" role="alert">{{ message }}</p>
+    }
+
+    <div class="actions">
+      <button type="submit" class="primary" [disabled]="running()">
+        {{ running() ? 'Running…' : 'Run debate' }}
+      </button>
+      <button type="button" class="secondary" [disabled]="running()" (click)="runDemo()">
+        Run against the AID-01 fixture
+      </button>
+    </div>
+  </form>
+
+  @if (result(); as r) {
+    <h2>Result</h2>
+    <div class="card">
+      <table>
+        <tbody>
+          <tr>
+            <th>Outcome</th>
+            <td>{{ r.outcome }}</td>
+          </tr>
+          <tr>
+            <th>Weakest join</th>
+            <td>{{ r.weakestJoin }}</td>
+          </tr>
+          <tr>
+            <th>Rounds / turns</th>
+            <td>{{ r.rounds }} / {{ r.turns }}{{ r.terminatedByTurnCap ? ' (capped)' : '' }}</td>
+          </tr>
+          <tr>
+            <th>Cost</th>
+            <td>
+              {{ r.cost.currency }} {{ r.cost.total }} · {{ r.cost.modelCalls }} calls
+              @if (!r.cost.rated) {
+                <span class="badge">unrated</span>
+              }
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p class="field-hint">{{ r.summary }}</p>
+      <p class="hint">{{ r.disclaimer }}</p>
+
+      @if (r.edgeIntegrityWarnings.length > 0 || r.abandonedReasoningWarnings.length > 0) {
+        <h2 style="margin-top: 1.25rem">Integrity warnings (SEC-50)</h2>
+        @for (warning of r.edgeIntegrityWarnings; track warning) {
+          <p class="error" role="alert">{{ warning }}</p>
+        }
+        @for (warning of r.abandonedReasoningWarnings; track warning) {
+          <p class="error" role="alert">{{ warning }}</p>
+        }
+      }
+
+      <h2 style="margin-top: 1.25rem">Transcript</h2>
+      @for (turn of r.transcript; track $index) {
+        <div class="card" style="margin-top: 0.6rem">
+          <p class="field-hint" style="margin: 0 0 0.4rem">
+            <strong>{{ turn.role }}</strong> · round {{ turn.round }} · {{ turn.confidence }} ·
+            {{ turn.tier }} tier · {{ turn.tokens }} tokens
+          </p>
+          <pre class="wire">{{ turn.content }}</pre>
+        </div>
+      }
+    </div>
+  }
+</div>

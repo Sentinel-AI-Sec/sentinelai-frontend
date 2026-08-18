@@ -4,6 +4,15 @@
     SentinelAI
   </a>
 
+  @if (auth.isAuthenticated()) {
+    <nav class="nav">
+      <a routerLink="/projects" routerLinkActive="active">Projects</a>
+      <a routerLink="/scans/new" routerLinkActive="active">New scan</a>
+      <a routerLink="/debate" routerLinkActive="active">Debate</a>
+      <a routerLink="/account" routerLinkActive="active">Account</a>
+    </nav>
+  }
+
   <div class="topbar__right">
     @if (demoMode) {
       <span class="chip" title="No backend is being called; the reference fixture's audit is shown">
