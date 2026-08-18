@@ -16,6 +16,11 @@ export const environment = {
    * repository — which is what makes it reviewable before the pipeline is wired end to end.
    * Flip this to false and the same components talk to the real endpoints; nothing else
    * changes, because the demo source returns the exact wire shapes the API sends.
+   *
+   * Now false: the screen reads the deployed API. `proxy.conf.json` forwards /v1 server-side
+   * to the Azure Container App, so the browser still sees same-origin and CORS is never
+   * consulted — the backend's SEC-42 policy only comes into play once this UI is served from
+   * its own host rather than through `ng serve`.
    */
-  useDemoData: true,
+  useDemoData: false,
 };
