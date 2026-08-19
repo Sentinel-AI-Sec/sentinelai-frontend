@@ -4,7 +4,6 @@ name: Deploy UI to Azure Static Web Apps
 # and the build must run with --configuration production so the fileReplacements
 # entry swaps in environment.prod.ts (absolute apiBaseUrl). A development build
 # would ship apiBaseUrl:'' and call the static host for /v1.
-
 on:
   push:
     branches: [dev]
