@@ -19,4 +19,29 @@ export const environment = {
    * running — the demo source returns the exact wire shapes the API sends.
    */
   useDemoData: false,
+
+  /**
+   * Billing, via Stripe Checkout.
+   *
+   * **Nothing secret belongs here.** The integration is deliberately shaped so the browser
+   * never sees a Stripe key and never touches a card number: the frontend asks our own API to
+   * create a Checkout Session, the API talks to Stripe with the secret key server-side, and the
+   * browser is redirected to a Stripe-hosted page. Card data never enters this origin, which
+   * keeps the whole app out of PCI scope. A `publishableKey` field is absent on purpose —
+   * Checkout does not need one, and adding it would invite someone to reach for Stripe.js and
+   * mount a card field here.
+   *
+   * `enabled` is the switch. While it is false the billing screens still render — plans, the
+   * comparison, the current-plan panel — but every action that would spend money says plainly
+   * that billing is not configured instead of calling an endpoint that does not exist yet.
+   * That is the same rule the rest of this app follows: show the real state, never a mock of a
+   * successful outcome.
+   *
+   * To turn it on: implement the four endpoints named in `core/api/billing-api.ts`, put the
+   * Stripe **Price** ids into `core/billing/plans.ts` (they are public identifiers, safe to
+   * commit), and flip this to true.
+   */
+  billing: {
+    enabled: false,
+  },
 };

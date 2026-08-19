@@ -32,6 +32,7 @@ describe('ChainCard', () => {
         order: 1,
         technique_id: 'T1190',
         blue_validated: true,
+        blue_verdict: 'confirmed',
         edge_confidence: null,
         finding_id: 'f1',
         node_key: 'code:orderscontroller',
@@ -40,6 +41,7 @@ describe('ChainCard', () => {
         order: 2,
         technique_id: 'T1530',
         blue_validated: false,
+        blue_verdict: 'unresolved',
         edge_confidence: 'inferred',
         finding_id: null,
         node_key: 's3:customer-data',
@@ -80,13 +82,60 @@ describe('ChainCard', () => {
     expect(text).toContain('No finding on this node');
   });
 
-  it('reports partial validation as partial, never as validated', () => {
-    // The most expensive lie this screen could tell: one unvalidated hop rounded up to a
-    // validated chain.
+  it('reports partial confirmation as partial, never as confirmed', () => {
+    // The most expensive lie this screen could tell: one unconfirmed hop rounded up to a
+    // confirmed chain.
     const text = (render().nativeElement as HTMLElement).textContent ?? '';
 
-    expect(text).toContain('Blue validated 1 of 2 steps');
-    expect(text).not.toContain('Blue validated every step');
+    expect(text).toContain('Blue confirmed 1 of 2 steps');
+    expect(text).not.toContain('Blue confirmed every step');
+  });
+
+  it('does not report an unjudged chain as one Blue rejected', () => {
+    // Audit 42-A: every hop is born `unassessed`, and the old card counted that as
+    // "Blue validated 0 of N steps" — a sentence that reads as a finding when nobody has
+    // looked. The two states must not share a sentence.
+    const unjudged: Chain = {
+      ...chain,
+      status: 'candidate',
+      hops: chain.hops.map((hop) => ({
+        ...hop,
+        blue_validated: false,
+        blue_verdict: 'unassessed' as const,
+      })),
+    };
+
+    const text = (render(unjudged).nativeElement as HTMLElement).textContent ?? '';
+
+    expect(text).toContain('No debate has judged this chain yet');
+    expect(text).not.toContain('Blue confirmed 0 of 2 steps');
+  });
+
+  it('states a refutation as a refutation, and not as an unsettled step', () => {
+    const refuted: Chain = {
+      ...chain,
+      hops: [chain.hops[0], { ...chain.hops[1], blue_verdict: 'refuted' as const }],
+    };
+
+    const text = (render(refuted).nativeElement as HTMLElement).textContent ?? '';
+
+    expect(text).toContain('Blue contradicted 1 of 2 steps');
+  });
+
+  it('renders a hop with no grounded technique without linking to one', () => {
+    // An empty technique_id appended to MITRE's technique URL is a link to their index wearing
+    // the label of a specific technique. Audit 42-A found exactly that on every chain.
+    const untyped: Chain = {
+      ...chain,
+      hops: [{ ...chain.hops[0], technique_id: '' }, chain.hops[1]],
+    };
+
+    const fixture = render(untyped);
+    const host = fixture.nativeElement as HTMLElement;
+
+    const links = [...host.querySelectorAll('a')].map((a) => a.getAttribute('href') ?? '');
+    expect(links).not.toContain('https://attack.mitre.org/techniques/');
+    expect(host.textContent ?? '').toContain('No ATT&CK technique was grounded');
   });
 
   it('shows the weakest join, not the strongest', () => {

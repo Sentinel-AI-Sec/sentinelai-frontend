@@ -40,6 +40,15 @@
     }
 
     <div class="topbar__right">
+      @if (!auth.isAuthenticated()) {
+        <!-- Anchors, not buttons: /pricing is reachable signed out, and the shell renders no
+             control that would need a session behind it. -->
+        <a class="topbar__link" routerLink="/pricing" routerLinkActive="topbar__link--active">
+          Pricing
+        </a>
+        <a class="btn btn--soft btn--sm btn--pill" routerLink="/login">Sign in</a>
+      }
+
       @if (demoMode) {
         <span
           class="chip chip--warn"

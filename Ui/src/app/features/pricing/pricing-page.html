@@ -1,0 +1,220 @@
+<div class="page page--wide pricing">
+  <header class="pricing__head">
+    <p class="eyebrow">
+      <span class="chip chip--live">
+        <span class="chip__dot" aria-hidden="true"></span>
+        transparent pricing
+      </span>
+    </p>
+    <h1>Plans built around what a scan actually costs</h1>
+    <p class="lede">
+      Every tier reads the same findings. What you pay for is the reasoning on top of them — the
+      Red/Blue debate that turns a few thousand alerts into a handful of ordered chains, each one
+      carrying how far it can be trusted.
+    </p>
+
+    <div class="seg pricing__toggle" role="group" aria-label="Billing period">
+      <button
+        type="button"
+        class="seg__opt"
+        [attr.aria-pressed]="period() === 'monthly'"
+        (click)="setPeriod('monthly')"
+      >
+        Monthly
+      </button>
+      <button
+        type="button"
+        class="seg__opt"
+        [attr.aria-pressed]="period() === 'annual'"
+        (click)="setPeriod('annual')"
+      >
+        Annual
+        @if (annualSaving(); as saving) {
+          <span class="pricing__saving">save {{ saving }}%</span>
+        }
+      </button>
+    </div>
+  </header>
+
+  @if (!billingEnabled) {
+    <p class="gate" role="note">
+      <span class="ms ms--sm" aria-hidden="true">construction</span>
+      <span>
+        Billing is not configured on this deployment yet, so the paid plans cannot be bought from
+        here. Everything below is the real plan structure — no card will be asked for and nothing
+        can be charged until Stripe is wired up.
+      </span>
+    </p>
+  }
+
+  @if (error(); as message) {
+    <p class="error" role="alert">
+      <span class="ms ms--sm" aria-hidden="true">error</span>
+      {{ message }}
+    </p>
+  }
+
+  <div class="plans">
+    @for (plan of plans; track plan.id) {
+      <section class="plan" [class.plan--featured]="plan.featured">
+        @if (plan.featured) {
+          <span class="plan__ribbon">Most teams start here</span>
+        }
+
+        <header class="plan__head">
+          <h2 class="plan__name">{{ plan.name }}</h2>
+          <p class="plan__blurb">{{ plan.blurb }}</p>
+        </header>
+
+        <div class="plan__price">
+          @if (price(plan).amount === null) {
+            <span class="plan__amount">Custom</span>
+          } @else if (price(plan).amount === 0) {
+            <span class="plan__amount">Free</span>
+            <span class="plan__unit">forever</span>
+          } @else {
+            <span class="plan__amount">${{ price(plan).amount }}</span>
+            <span class="plan__unit">
+              per seat / month
+              @if (period() === 'annual') {
+                <span class="plan__billed">billed annually</span>
+              }
+            </span>
+          }
+        </div>
+
+        <ul class="plan__features">
+          @for (feature of plan.features; track feature) {
+            <li>
+              <span class="ms ms--sm plan__tick" aria-hidden="true">check</span>
+              <span>{{ feature }}</span>
+            </li>
+          }
+          <!-- Ceilings are listed, not hidden. A tier that only shows what it includes makes
+               the tier above it look like an upsell rather than an answer. -->
+          @for (limit of plan.limits ?? []; track limit) {
+            <li class="plan__limit">
+              <span class="ms ms--sm" aria-hidden="true">remove</span>
+              <span>{{ limit }}</span>
+            </li>
+          }
+        </ul>
+
+        <div class="plan__action">
+          @if (plan.action === 'included') {
+            <a class="btn btn--ghost btn--block" routerLink="/register">{{ plan.cta }}</a>
+          } @else if (plan.action === 'contact') {
+            <a
+              class="btn btn--ghost btn--block"
+              href="mailto:sales@sentinelai.example?subject=SentinelAI%20Enterprise"
+            >
+              <span class="ms ms--sm" aria-hidden="true">mail</span>
+              {{ plan.cta }}
+            </a>
+          } @else {
+            <button
+              type="button"
+              class="btn btn--block"
+              [class.btn--primary]="plan.featured"
+              [disabled]="!!blockedReason(plan) || starting() === plan.id"
+              (click)="choose(plan)"
+            >
+              @if (starting() === plan.id) {
+                <span class="spinner" aria-hidden="true"></span>
+                Opening Stripe…
+              } @else {
+                {{ plan.cta }}
+              }
+            </button>
+
+            @if (blockedReason(plan); as reason) {
+              <p class="plan__blocked">{{ reason }}</p>
+            } @else if (!auth.isAuthenticated()) {
+              <p class="plan__note">You will create an organisation first.</p>
+            }
+          }
+        </div>
+      </section>
+    }
+  </div>
+
+  <section class="card assurance">
+    <div class="assurance__item">
+      <span class="ms ms--lg" aria-hidden="true">lock</span>
+      <div>
+        <h3>We never see your card</h3>
+        <p>
+          Payment is taken on Stripe’s own hosted page. No card number, and no Stripe key, ever
+          reaches this application.
+        </p>
+      </div>
+    </div>
+    <div class="assurance__item">
+      <span class="ms ms--lg" aria-hidden="true">gavel</span>
+      <div>
+        <h3>Every report is a draft</h3>
+        <p>
+          On every plan. SentinelAI reports paths that exist in your resource graph — it does not
+          execute or prove exploits, and it says which joins it is unsure about.
+        </p>
+      </div>
+    </div>
+    <div class="assurance__item">
+      <span class="ms ms--lg" aria-hidden="true">receipt_long</span>
+      <div>
+        <h3>Model spend is itemised</h3>
+        <p>
+          Each audit reports what it cost to produce and how many model calls it took — and marks
+          the figure unrated when a tier has no published price.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section faq">
+    <div class="section__head">
+      <h2><span class="section__num">01.</span>Questions worth asking</h2>
+    </div>
+
+    <div class="faq__list">
+      @for (item of faqs; track item.q; let i = $index) {
+        <div class="faq__item" [class.faq__item--open]="openFaq() === i">
+          <button
+            type="button"
+            class="faq__q"
+            [attr.aria-expanded]="openFaq() === i"
+            (click)="toggleFaq(i)"
+          >
+            <span>{{ item.q }}</span>
+            <span class="ms ms--sm faq__chevron" aria-hidden="true">expand_more</span>
+          </button>
+          @if (openFaq() === i) {
+            <p class="faq__a">{{ item.a }}</p>
+          }
+        </div>
+      }
+    </div>
+  </section>
+
+  <section class="card card--accent closer">
+    <div>
+      <h2>Start on the free tier</h2>
+      <p class="lede">
+        Register an organisation, point a repository at it, and run a scan. Upgrading later keeps
+        every audit you have already produced.
+      </p>
+    </div>
+    <div class="actions">
+      @if (auth.isAuthenticated()) {
+        <a class="btn btn--primary" routerLink="/billing">
+          <span class="ms ms--sm" aria-hidden="true">credit_card</span>
+          Manage billing
+        </a>
+        <a class="btn btn--ghost" routerLink="/">Back to console</a>
+      } @else {
+        <a class="btn btn--primary" routerLink="/register">Create an organisation</a>
+        <a class="btn btn--ghost" routerLink="/login">Sign in</a>
+      }
+    </div>
+  </section>
+</div>

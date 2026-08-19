@@ -21,6 +21,7 @@ function chain(id: string, status: Chain['status'], priority: number): Chain {
         order: 1,
         technique_id: 'T1190',
         blue_validated: status === 'validated',
+        blue_verdict: status === 'validated' ? 'confirmed' : 'unresolved',
         edge_confidence: null,
         finding_id: null,
         node_key: `code:${id}`,

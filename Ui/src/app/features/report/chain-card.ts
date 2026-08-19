@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 
-import { Chain, ChainHop, ChainStatus, Finding } from '../../core/api/wire';
+import { Chain, ChainHop, ChainStatus, Finding, HopVerdict } from '../../core/api/wire';
 import { ConfidenceBadge } from './confidence-badge';
 
 /** A hop paired with the finding that evidences it, resolved once instead of in the template. */
@@ -47,14 +47,121 @@ export class ChainCard {
     return hops.length > 0 ? (hops[hops.length - 1].hop.node_key ?? 'unknown') : 'unknown';
   });
 
-  readonly validatedCount = computed(() => this.hops().filter((h) => h.hop.blue_validated).length);
+  readonly confirmedCount = computed(
+    () => this.hops().filter((h) => h.hop.blue_verdict === 'confirmed').length,
+  );
+
+  readonly refutedCount = computed(
+    () => this.hops().filter((h) => h.hop.blue_verdict === 'refuted').length,
+  );
 
   /**
-   * Whether Blue accepted the whole path. Anything less is stated as a partial, never rounded
-   * up — "validated" on a chain Blue only half-accepted is the most expensive lie this screen
-   * could tell.
+   * Whether Blue judged this chain at all.
+   *
+   * A chain straight out of the graph stage has every hop `unassessed`, and the old screen
+   * reported that as "Blue validated 0 of 5 steps" — a sentence that reads as a finding when it
+   * is really an empty column (audit 42-A). If nobody has looked, the card says so and stops.
    */
-  readonly fullyValidated = computed(() => this.validatedCount() === this.hops().length);
+  readonly adjudicated = computed(() =>
+    this.hops().some((h) => h.hop.blue_verdict !== 'unassessed'),
+  );
+
+  /**
+   * The one-line verdict for the whole chain, written from what Blue actually said.
+   *
+   * Deliberately not a count of `blue_validated`. That field collapses four different states
+   * into one `false`, so counting it turns "nobody has looked yet" and "Blue contradicted this"
+   * into the same sentence. The order below is the order that matters to a reader: a refutation
+   * outranks everything, then a clean sweep, then the honest partial.
+   */
+  readonly summary = computed(() => {
+    const total = this.hops().length;
+
+    if (!this.adjudicated()) {
+      return 'No debate has judged this chain yet — its steps come straight from the graph.';
+    }
+
+    const refuted = this.refutedCount();
+    if (refuted > 0) {
+      return `Blue contradicted ${refuted} of ${total} steps`;
+    }
+
+    const confirmed = this.confirmedCount();
+    if (confirmed === total) return 'Blue confirmed every step';
+
+    // The remainder is unresolved or unattributed — never stated as a negative, because
+    // neither is one.
+    return `Blue confirmed ${confirmed} of ${total} steps; the rest it could not settle`;
+  });
+
+  /**
+   * Whether this hop has a technique to link to.
+   *
+   * `technique_id` is empty whenever Red named none the scan could ground, which is the normal
+   * case rather than a missing value. Appending an empty id to MITRE's technique URL yields a
+   * link to their index wearing the label of a specific technique — the exact defect audit 42-A
+   * found on every chain in the product.
+   */
+  hasTechnique(hop: ChainHop): boolean {
+    return hop.technique_id.trim().length > 0;
+  }
+
+  /** ATT&CK sub-techniques are addressed `T1195/001`, not `T1195.001`. */
+  techniqueUrl(hop: ChainHop): string {
+    return `https://attack.mitre.org/techniques/${hop.technique_id.replace('.', '/')}`;
+  }
+
+  /**
+   * How a hop's verdict is labelled. `unassessed` and `unattributed` say plainly that nothing
+   * was decided, rather than borrowing the vocabulary of a failure.
+   */
+  verdictLabel(verdict: HopVerdict): string {
+    switch (verdict) {
+      case 'confirmed':
+        return 'confirmed';
+      case 'refuted':
+        return 'refuted';
+      case 'unresolved':
+        return 'could not settle';
+      case 'unattributed':
+        return 'not addressed';
+      default:
+        return 'not judged';
+    }
+  }
+
+  /** The reason behind the label, on hover. */
+  verdictHint(verdict: HopVerdict): string {
+    switch (verdict) {
+      case 'confirmed':
+        return 'Blue found the configuration shows this step is real, and named the evidence.';
+      case 'refuted':
+        return 'Blue found the configuration positively contradicts this step.';
+      case 'unresolved':
+        return 'Blue said the evidence given cannot settle this step either way. That is not evidence against it.';
+      case 'unattributed':
+        return 'Blue’s turn was read and nothing in it could be tied to this step. Not a judgement about the step.';
+      default:
+        return 'No debate has run over this chain, so nothing has been judged.';
+    }
+  }
+
+  /**
+   * Colour for the verdict chip. Only `refuted` is allowed to read as negative; the three
+   * not-a-judgement states stay neutral so they cannot be mistaken for one.
+   */
+  verdictClass(verdict: HopVerdict): string {
+    switch (verdict) {
+      case 'confirmed':
+        return 'chip--ok';
+      case 'refuted':
+        return 'chip--danger';
+      case 'unresolved':
+        return 'chip--warn';
+      default:
+        return 'chip--mute';
+    }
+  }
 
   severityLabel(severity: number): string {
     return ['none', 'low', 'medium', 'high', 'critical'][severity] ?? String(severity);

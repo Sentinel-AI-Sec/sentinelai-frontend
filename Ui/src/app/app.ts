@@ -80,6 +80,7 @@ export class App {
     { label: 'Projects', icon: 'folder_open', link: '/projects' },
     { label: 'New scan', icon: 'radar', link: '/scans/new' },
     { label: 'Debate', icon: 'forum', link: '/debate' },
+    { label: 'Billing', icon: 'credit_card', link: '/billing' },
     { label: 'Account', icon: 'manage_accounts', link: '/account' },
   ];
 
@@ -111,6 +112,12 @@ export class App {
 
       case 'account':
         return [{ label: 'Account' }];
+
+      case 'pricing':
+        return [{ label: 'Pricing' }];
+
+      case 'billing':
+        return [{ label: 'Billing' }];
 
       case 'reports':
         return [

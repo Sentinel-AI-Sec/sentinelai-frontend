@@ -48,6 +48,8 @@ npm run build     # production build
 | `/scans/:id/graph` | The resource graph, drawn: layer columns, joins coloured by confidence. |
 | `/reports/:id` | The draft audit: summary, severity posture, candidate chains, refuted chains, citations. |
 | `/debate` | Runs the Red/Blue/Reporter debate directly and renders the transcript. |
+| `/pricing` | Plans and FAQ. The only route outside the auth guard. |
+| `/billing` | This organisation's subscription, and the hand-off to Stripe. |
 | `/account` | Who you are signed in as, the scopes that gate everything, and the delete path. |
 
 Each chain renders as a vertical path rather than a table, because the ordering *is* the
@@ -76,6 +78,35 @@ the edge.
    findings page counts the rows it has loaded, not the scan, because under a cursor it cannot
    honestly claim the latter.
 
+## Billing is built but not switched on
+
+`/pricing` and `/billing` are finished screens against a Stripe integration that does not exist
+on the backend yet. Nothing is mocked: while `environment.billing.enabled` is false, every
+action that would spend money says billing is unconfigured instead of starting a flow that
+cannot finish.
+
+To turn it on:
+
+1. Implement the four endpoints named in
+   [`core/api/billing-api.ts`](Ui/src/app/core/api/billing-api.ts) — `GET /v1/billing/subscription`,
+   `POST /v1/billing/checkout`, `POST /v1/billing/portal`, and the Stripe webhook receiver.
+2. Put the Stripe **Price** ids into [`core/billing/plans.ts`](Ui/src/app/core/billing/plans.ts).
+   They are public identifiers, safe to commit — unlike the secret key, which only ever lives
+   on the backend.
+3. Set `environment.billing.enabled` to true.
+
+Two rules the backend has to hold up, because the frontend cannot:
+
+- **Only the signed webhook may change a plan.** The browser being redirected to
+  `?checkout=success` proves nothing — anyone can type that URL. This screen treats the
+  redirect purely as a cue to re-read the subscription, and a test pins that.
+- **The price id and return URLs arriving from the browser are inputs, not instructions.**
+  Check the price against an allow-list, or a caller substitutes the id of a $0 price; check
+  the return URL against your own origins, or you have an open redirect.
+
+The browser never touches a card number or a Stripe key: payment happens on Stripe's hosted
+Checkout page, which keeps this origin out of PCI scope entirely.
+
 ## Structure
 
 ```
@@ -94,9 +125,12 @@ Ui/src/
       auth/              session, bearer interceptor, route guard
       history/recents.ts what this browser has opened, keyed by tenant
       config/            environment flags
+      billing/plans.ts   the plan catalogue — the one place a price or Stripe id is written
     features/
       auth/              the split brand/form canvas shared by login and register
       home/              the console landing screen
+      pricing/           plans, comparison and FAQ (no auth guard)
+      billing/           subscription state and the Stripe hand-off
       projects/          registered repositories
       scans/             submit, pipeline ops, findings, resource graph
       report/            the draft audit, chain cards, confidence badges

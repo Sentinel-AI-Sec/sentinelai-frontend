@@ -1,0 +1,54 @@
+/* Layout local to the billing screen; the rest comes from the global system. */
+
+/* A date is longer than a count — it needs its own size or it wraps inside the tile. */
+.kpi__value.renewal {
+  font-size: 1.25rem;
+}
+
+.kpi__value.held {
+  font-size: 1.05rem;
+  font-family: var(--mono);
+}
+
+.empty h2 {
+  font-size: 1.05rem;
+}
+
+.empty .hint {
+  max-width: 52ch;
+}
+
+.portal {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.portal .hint {
+  max-width: 52ch;
+  margin-top: 0.35rem;
+}
+
+.switch {
+  gap: 0.75rem;
+}
+
+.switch .hint {
+  flex: 1;
+}
+
+/* The plan already held is outlined rather than filled — it is a statement, not an offer. */
+.switch--current {
+  border-color: rgba(107, 216, 203, 0.4);
+  background: linear-gradient(160deg, rgba(107, 216, 203, 0.07), var(--surface) 60%);
+}
+
+.footnote {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  max-width: 62ch;
+  margin-top: 0.5rem;
+}

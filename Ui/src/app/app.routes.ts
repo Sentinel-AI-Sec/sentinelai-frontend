@@ -76,6 +76,20 @@ export const routes: Routes = [
     title: 'Debate playground · SentinelAI',
   },
   {
+    // The one screen behind no guard. Someone deciding whether to sign up has to be able to
+    // read what it costs, and a pricing page that bounces to /login is a pricing page nobody
+    // reads.
+    path: 'pricing',
+    loadComponent: () => import('./features/pricing/pricing-page').then((m) => m.PricingPage),
+    title: 'Pricing · SentinelAI',
+  },
+  {
+    path: 'billing',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/billing/billing-page').then((m) => m.BillingPage),
+    title: 'Billing · SentinelAI',
+  },
+  {
     path: 'account',
     canActivate: [authGuard],
     loadComponent: () => import('./features/account/account-page').then((m) => m.AccountPage),

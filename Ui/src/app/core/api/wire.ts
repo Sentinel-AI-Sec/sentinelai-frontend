@@ -127,11 +127,51 @@ export interface ResourceGraph {
   edges: GraphEdge[];
 }
 
+/**
+ * What Blue's validation turn said about one hop (audit 42-A).
+ *
+ * Five values, not a boolean, and the distinction is the whole point:
+ *
+ * - `unassessed`    no debate has run over this chain. Nobody has looked.
+ * - `unattributed`  Blue's turn was read and nothing in it could be tied to this hop.
+ * - `refuted`       Blue: the configuration positively contradicts this hop.
+ * - `unresolved`    Blue: the evidence given cannot settle this hop either way.
+ * - `confirmed`     Blue: the configuration shows this hop is real, and named the evidence.
+ *
+ * Only `refuted` is evidence against a hop. `unassessed` and `unattributed` are not judgements
+ * at all, and `unresolved` is Blue explicitly declining to make one — rendering any of the
+ * three as a failure states a result nobody produced.
+ */
+export type HopVerdict = 'unassessed' | 'unattributed' | 'refuted' | 'unresolved' | 'confirmed';
+
 /** One step along a candidate chain. */
 export interface ChainHop {
   order: number;
+
+  /**
+   * The ATT&CK id Red named for this hop, or **empty** when it named none this scan could
+   * ground.
+   *
+   * Empty is the normal answer, not a missing value. Appending it to
+   * `https://attack.mitre.org/techniques/` unconditionally produces a link to MITRE's index
+   * dressed up as a link to a specific technique — which is exactly what audit 42-A found this
+   * screen doing on every chain in the product. Check before you link.
+   */
   technique_id: string;
+
+  /**
+   * Whether Blue confirmed this hop — true only for a `confirmed` {@link blue_verdict}.
+   *
+   * The lossy half of the pair, kept on the wire because this screen was built against it.
+   * Counting it answers "how many did Blue confirm?" and nothing else; in particular a `false`
+   * here is not a negative finding. Anything that summarises a chain should read
+   * {@link blue_verdict} instead.
+   */
   blue_validated: boolean;
+
+  /** What Blue actually said. The field to summarise from. */
+  blue_verdict: HopVerdict;
+
   /** Null on the seed hop, which arrived from nowhere. */
   edge_confidence: Confidence | null;
   finding_id: string | null;
