@@ -1,0 +1,55 @@
+name: Deploy UI to Azure Static Web Apps
+
+# Built on GitHub's runners rather than locally: Angular 22 needs Node >= 24.15.0,
+# and the build must run with --configuration production so the fileReplacements
+# entry swaps in environment.prod.ts (absolute apiBaseUrl). A development build
+# would ship apiBaseUrl:'' and call the static host for /v1.
+
+on:
+  push:
+    branches: [dev]
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    branches: [dev]
+  workflow_dispatch:
+
+jobs:
+  build_and_deploy:
+    if: github.event_name != 'pull_request' || github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    name: Build and deploy
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.15.0'
+          cache: npm
+          cache-dependency-path: Ui/package-lock.json
+
+      - name: Install dependencies
+        working-directory: Ui
+        run: npm ci
+
+      - name: Build
+        working-directory: Ui
+        run: npm run build -- --configuration production
+
+      - name: Deploy
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          action: upload
+          app_location: Ui/dist/ui/browser
+          output_location: ''
+          skip_app_build: true
+
+  close_pull_request:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    name: Close preview environment
+    steps:
+      - uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          action: close
