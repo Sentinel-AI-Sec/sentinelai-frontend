@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { Router, RouterLink, RouterOutlet } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 import { Auth } from './core/auth/auth';
 import { environment } from './core/config/environment';
@@ -7,7 +7,7 @@ import { environment } from './core/config/environment';
 @Component({
   selector: 'app-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, RouterLink],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
@@ -17,7 +17,8 @@ export class App {
   protected readonly demoMode = environment.useDemoData;
 
   signOut(): void {
-    this.auth.logout();
-    void this.router.navigate(['/login']);
+    // logout() revokes the refresh token server-side before dropping the local session; it
+    // clears local state and completes even if that call fails, so the navigation always runs.
+    this.auth.logout().subscribe(() => void this.router.navigate(['/login']));
   }
 }

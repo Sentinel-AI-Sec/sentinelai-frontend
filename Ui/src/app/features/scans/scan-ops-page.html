@@ -1,0 +1,155 @@
+<div class="panel panel--wide">
+  <h1>Scan ops</h1>
+  <p class="lede">
+    Job <code>{{ id() }}</code> — manually drives the pipeline stages a queue worker will
+    eventually run automatically. See the report at
+    <a [routerLink]="['/reports', id()]">/reports/{{ id() }}</a> once the audit stage retains one.
+  </p>
+
+  @if (demoMode) {
+    <p class="gate" role="note">Demo mode — stage runs return canned output, not a real pipeline.</p>
+  }
+
+  <h2>Status</h2>
+  @if (jobLoading()) {
+    <p class="hint">Loading…</p>
+  } @else if (jobError(); as message) {
+    <p class="error" role="alert">{{ message }}</p>
+  } @else if (job(); as j) {
+    <div class="card">
+      <table>
+        <tbody>
+          <tr>
+            <th>Status</th>
+            <td><span class="badge">{{ ScanStatusName[j.status] ?? j.status }}</span></td>
+          </tr>
+          <tr>
+            <th>Stage</th>
+            <td><span class="badge">{{ ScanStageName[j.stage] ?? j.stage }}</span></td>
+          </tr>
+          <tr>
+            <th>Corpus version</th>
+            <td><code>{{ j.corpusVersion }}</code></td>
+          </tr>
+          <tr>
+            <th>Bundle purged</th>
+            <td>{{ j.bundlePurged ? 'yes' : 'no' }}</td>
+          </tr>
+          @if (j.failureReason) {
+            <tr>
+              <th>Failure</th>
+              <td class="error" style="margin: 0">{{ j.failureReason }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      <div class="actions">
+        <button type="button" class="secondary" (click)="loadJob(id())">Refresh</button>
+      </div>
+    </div>
+  }
+
+  <h2>1. Run graph stage</h2>
+  <p class="field-hint">Normalize → graph → candidate chains. Requires <code>scan:write</code>.</p>
+  @if (!canWrite) {
+    <p class="gate">Requires the <code>scan:write</code> scope.</p>
+  } @else {
+    <div class="card">
+      <div class="actions" style="margin-top: 0">
+        <button type="button" class="primary" [disabled]="graphRunning()" (click)="runGraphStage()">
+          {{ graphRunning() ? 'Running…' : 'Run graph stage' }}
+        </button>
+      </div>
+
+      @if (graphError(); as message) {
+        <p class="error" role="alert">{{ message }}</p>
+      }
+
+      @if (graphResult(); as result) {
+        <table>
+          <tbody>
+            <tr>
+              <th>Findings</th>
+              <td>{{ result.findings }}</td>
+            </tr>
+            <tr>
+              <th>Candidate chains</th>
+              <td>{{ result.candidateChains }}</td>
+            </tr>
+            <tr>
+              <th>Redacted / hardcoded secrets</th>
+              <td>{{ result.messagesRedacted }} / {{ result.hardcodedSecrets }}</td>
+            </tr>
+            <tr>
+              <th>Terraform / lock / Dockerfiles</th>
+              <td>{{ result.terraformFiles }} / {{ result.lockFiles }} / {{ result.dockerfiles }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <p class="field-hint">Resource graph (paste into the debate playground):</p>
+        <pre class="wire">{{ result.resourceGraph }}</pre>
+      }
+    </div>
+  }
+
+  <h2>2. Run audit stage</h2>
+  <p class="field-hint">Retrieve → debate → report → retention. Requires <code>scan:write</code>.</p>
+  @if (!canWrite) {
+    <p class="gate">Requires the <code>scan:write</code> scope.</p>
+  } @else {
+    <div class="card">
+      <div class="actions" style="margin-top: 0">
+        <button type="button" class="primary" [disabled]="auditRunning()" (click)="runAuditStage()">
+          {{ auditRunning() ? 'Running…' : 'Run audit stage' }}
+        </button>
+      </div>
+
+      @if (auditError(); as message) {
+        <p class="error" role="alert">{{ message }}</p>
+      }
+
+      @if (auditResult(); as result) {
+        <table>
+          <tbody>
+            <tr>
+              <th>Outcome</th>
+              <td>{{ result.outcome }}</td>
+            </tr>
+            <tr>
+              <th>Rounds / citations</th>
+              <td>{{ result.rounds }} / {{ result.citations }}</td>
+            </tr>
+            <tr>
+              <th>Report retained</th>
+              <td>{{ result.report_retained ? 'yes' : 'no' }}</td>
+            </tr>
+            @if (result.report_id) {
+              <tr>
+                <th>Report</th>
+                <td><a [routerLink]="['/reports', result.report_id]">{{ result.report_id }}</a></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        <p class="field-hint">{{ result.summary }}</p>
+      }
+    </div>
+  }
+
+  <h2>3. Purge bundle</h2>
+  <p class="field-hint">Deletes the stored bundle ahead of retention. Admin role only.</p>
+  @if (!isAdmin) {
+    <p class="gate">Requires the admin role.</p>
+  } @else {
+    <div class="card">
+      <div class="actions" style="margin-top: 0">
+        <button type="button" class="danger" [disabled]="purging()" (click)="purge()">
+          {{ purging() ? 'Purging…' : 'Purge bundle' }}
+        </button>
+      </div>
+      @if (purgeError(); as message) {
+        <p class="error" role="alert">{{ message }}</p>
+      }
+    </div>
+  }
+</div>

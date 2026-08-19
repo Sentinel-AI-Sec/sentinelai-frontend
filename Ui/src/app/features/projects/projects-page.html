@@ -1,0 +1,88 @@
+<div class="panel">
+  <h1>Projects</h1>
+  <p class="lede">
+    The repositories this tenant may submit scans for. A scan's <code>metadata.project_id</code>
+    has to match one of these.
+  </p>
+
+  @if (demoMode) {
+    <p class="gate" role="note">Demo mode — showing one reference project, not a real list.</p>
+  }
+
+  @if (loading()) {
+    <p class="hint">Loading…</p>
+  } @else if (loadError(); as message) {
+    <p class="error" role="alert">{{ message }}</p>
+  } @else if (projects().length === 0) {
+    <p class="hint">No projects registered yet.</p>
+  } @else {
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>Repository</th>
+            <th>Default branch</th>
+            <th>Project id</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (project of projects(); track project.projectId) {
+            <tr>
+              <td>{{ project.repoUrl }}</td>
+              <td>{{ project.defaultBranch }}</td>
+              <td><code>{{ project.projectId }}</code></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  @if (isAdmin) {
+    <h2>Register a repository</h2>
+    <form class="card" (ngSubmit)="create()">
+      <div class="field">
+        <label for="repoUrl">Repository URL</label>
+        <input
+          id="repoUrl"
+          name="repoUrl"
+          type="url"
+          placeholder="https://github.com/org/repo"
+          required
+          [ngModel]="repoUrl()"
+          (ngModelChange)="repoUrl.set($event)"
+        />
+      </div>
+
+      <div class="field">
+        <label for="defaultBranch">Default branch</label>
+        <input
+          id="defaultBranch"
+          name="defaultBranch"
+          type="text"
+          placeholder="main"
+          [ngModel]="defaultBranch()"
+          (ngModelChange)="defaultBranch.set($event)"
+        />
+        <p class="field-hint">Leave blank for <code>main</code>.</p>
+      </div>
+
+      @if (createError(); as message) {
+        <p class="error" role="alert">{{ message }}</p>
+      }
+
+      <div class="actions">
+        <button type="submit" class="primary" [disabled]="creating() || !repoUrl().trim()">
+          {{ creating() ? 'Registering…' : 'Register project' }}
+        </button>
+      </div>
+    </form>
+  } @else {
+    <p class="gate">Registering a repository requires the admin role.</p>
+  }
+
+  <p class="hint">
+    Once a project is registered, submit a scan for it from
+    <a routerLink="/scans/new">New scan</a>.
+  </p>
+</div>

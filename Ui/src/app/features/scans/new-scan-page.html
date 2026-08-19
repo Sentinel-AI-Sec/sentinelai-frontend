@@ -1,0 +1,132 @@
+<div class="panel">
+  <h1>Submit a scan</h1>
+  <p class="lede">
+    Uploads a bundle the way the GitHub Action does — a <code>metadata.json</code> part plus the
+    <code>.tar.gz</code> tarball. The project id has to match one already registered on
+    <a routerLink="/projects">Projects</a>.
+  </p>
+
+  @if (demoMode) {
+    <p class="gate" role="note">Demo mode — no upload happens; a canned response is returned.</p>
+  }
+
+  @if (!canWrite) {
+    <p class="gate">Submitting a scan requires the <code>scan:write</code> scope.</p>
+  } @else if (submitted(); as job) {
+    <div class="card">
+      <h2 style="margin-top: 0">Accepted</h2>
+      <p class="field-hint">Scan job id</p>
+      <pre class="wire">{{ job.scanJobId }}</pre>
+      <p class="field-hint">Corpus version: <code>{{ job.corpusVersion }}</code></p>
+      <p class="field-hint">Bundle sha256: <code>{{ job.bundleSha256 }}</code></p>
+      <div class="actions">
+        <button type="button" class="primary" (click)="openOps()">Open in scan ops →</button>
+      </div>
+    </div>
+  } @else {
+    <form class="card" (ngSubmit)="submit()">
+      <div class="field">
+        <label for="projectId">Project id</label>
+        <input
+          id="projectId"
+          name="projectId"
+          type="text"
+          required
+          [ngModel]="projectId()"
+          (ngModelChange)="projectId.set($event)"
+        />
+      </div>
+
+      <div class="field">
+        <label for="prRef">PR ref</label>
+        <input
+          id="prRef"
+          name="prRef"
+          type="text"
+          placeholder="refs/pull/42/merge"
+          [ngModel]="prRef()"
+          (ngModelChange)="prRef.set($event)"
+        />
+      </div>
+
+      <div class="field">
+        <label for="commitSha">Commit SHA</label>
+        <input
+          id="commitSha"
+          name="commitSha"
+          type="text"
+          [ngModel]="commitSha()"
+          (ngModelChange)="commitSha.set($event)"
+        />
+      </div>
+
+      <div class="field">
+        <label for="modelTierHint">Model tier hint</label>
+        <select
+          id="modelTierHint"
+          name="modelTierHint"
+          [ngModel]="modelTierHint()"
+          (ngModelChange)="modelTierHint.set($event)"
+        >
+          <option value="auto">auto</option>
+          <option value="economy">economy</option>
+          <option value="premium">premium</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="runnerSecretScan">Runner secret scan</label>
+        <select
+          id="runnerSecretScan"
+          name="runnerSecretScan"
+          [ngModel]="runnerSecretScan()"
+          (ngModelChange)="runnerSecretScan.set($event)"
+        >
+          <option value="skipped">skipped</option>
+          <option value="passed">passed</option>
+          <option value="failed">failed</option>
+        </select>
+      </div>
+
+      <div class="field checkbox">
+        <input
+          id="retainReport"
+          name="retainReport"
+          type="checkbox"
+          [ngModel]="retainReport()"
+          (ngModelChange)="retainReport.set($event)"
+        />
+        <label for="retainReport" style="text-transform: none; letter-spacing: 0; font-weight: 500">
+          Retain the report after the audit runs
+        </label>
+      </div>
+
+      <div class="field">
+        <label for="scannerVersions">Scanner versions (JSON)</label>
+        <textarea
+          id="scannerVersions"
+          name="scannerVersions"
+          rows="3"
+          [ngModel]="scannerVersionsJson()"
+          (ngModelChange)="scannerVersionsJson.set($event)"
+        ></textarea>
+        <p class="field-hint">Stored verbatim as provenance, e.g. <code>{{ '{"osv-scanner":"2.3.8"}' }}</code>.</p>
+      </div>
+
+      <div class="field">
+        <label for="bundle">Bundle (.tar.gz, max 64 MB)</label>
+        <input id="bundle" name="bundle" type="file" accept=".tar.gz,.tgz" (change)="onFileSelected($event)" />
+      </div>
+
+      @if (error(); as message) {
+        <p class="error" role="alert">{{ message }}</p>
+      }
+
+      <div class="actions">
+        <button type="submit" class="primary" [disabled]="submitting() || !projectId().trim()">
+          {{ submitting() ? 'Submitting…' : 'Submit bundle' }}
+        </button>
+      </div>
+    </form>
+  }
+</div>
