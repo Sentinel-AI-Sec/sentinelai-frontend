@@ -1,0 +1,384 @@
+/* Topology canvas and its inspector. Everything else on the page is global vocabulary. */
+
+.controls {
+  gap: 0.9rem;
+}
+
+.controls__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.controls__counts {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.legend {
+  display: flex;
+  gap: 1.75rem;
+  flex-wrap: wrap;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-soft);
+}
+
+.legend__group {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.legend__title {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+}
+
+.legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-dim);
+}
+
+.swatch {
+  width: 0.85rem;
+  height: 0.2rem;
+  border-radius: var(--radius-pill);
+  display: inline-block;
+}
+
+.swatch--certain {
+  background: var(--tier-certain);
+}
+
+.swatch--inferred {
+  background: var(--tier-inferred);
+}
+
+.swatch--unresolved {
+  background: var(--tier-unresolved);
+}
+
+.swatch--dep {
+  background: var(--layer-dep);
+}
+
+.swatch--code {
+  background: var(--layer-code);
+}
+
+.swatch--infra {
+  background: var(--layer-infra);
+}
+
+/* ---- Canvas ------------------------------------------------------------------------------ */
+
+/*
+ * The graph scales to fit rather than scrolling inside its own box.
+ *
+ * A scroll container here fought the page for the wheel — you could see a 200px band of a
+ * 900px drawing and had to guess which scrollbar you were on. Sizing the viewport and letting
+ * the viewBox scale means the whole topology is always on screen at once, which is the only
+ * reading of it that answers the question people bring to this screen ("what reaches what").
+ * A very large graph draws small; the layer filter and the inspector are what make it legible
+ * from there, not a scrollbar.
+ */
+.canvas {
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  padding: 0.5rem;
+  height: min(72vh, 44rem);
+  overflow: hidden;
+}
+
+.canvas__svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ---- Edges -------------------------------------------------------------------------------- */
+
+.edge {
+  fill: none;
+  stroke-width: 1.8;
+  opacity: 0.9;
+  transition: opacity 0.2s var(--ease);
+}
+
+.edge--certain {
+  stroke: var(--tier-certain);
+}
+
+.edge--inferred {
+  stroke: var(--tier-inferred);
+}
+
+/* Dashed as well as coloured: the weakest join has to stay legible in greyscale. */
+.edge--unresolved {
+  stroke: var(--tier-unresolved);
+  stroke-dasharray: 5 5;
+}
+
+.edge--dim {
+  opacity: 0.12;
+}
+
+.arrow--certain {
+  fill: var(--tier-certain);
+}
+
+.arrow--inferred {
+  fill: var(--tier-inferred);
+}
+
+.arrow--unresolved {
+  fill: var(--tier-unresolved);
+}
+
+/* ---- Nodes -------------------------------------------------------------------------------- */
+
+.node {
+  cursor: pointer;
+  transition: opacity 0.2s var(--ease);
+}
+
+.node:focus {
+  outline: none;
+}
+
+.node:focus-visible .node__ring {
+  stroke: var(--accent-bright);
+  stroke-width: 3;
+}
+
+.node__ring {
+  fill: var(--surface);
+  stroke: var(--border-strong);
+  stroke-width: 2;
+  transition:
+    fill 0.16s var(--ease),
+    stroke-width 0.16s var(--ease);
+}
+
+.node:hover .node__ring {
+  fill: var(--surface-3);
+}
+
+.node--dep .node__ring {
+  stroke: var(--layer-dep);
+}
+
+.node--code .node__ring {
+  stroke: var(--layer-code);
+}
+
+.node--infra .node__ring {
+  stroke: var(--layer-infra);
+}
+
+.node--hot .node__ring {
+  stroke: var(--sev-critical);
+  stroke-width: 2.5;
+}
+
+.node--selected .node__ring {
+  stroke: var(--accent-bright);
+  stroke-width: 3.5;
+}
+
+.node--dim {
+  opacity: 0.18;
+}
+
+/* The halo pulses only on nodes the graph stage flagged hot — emphasis, never the only signal
+   (the ring colour and the inspector both say it too). */
+.node__halo {
+  fill: none;
+  stroke: var(--sev-critical);
+  stroke-width: 1.5;
+  opacity: 0.5;
+  /* Scaled rather than animated on `r`: the geometry-property-as-CSS route is still uneven
+     across engines, and a transform on a circle centred at the group origin is not. */
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: halo 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes halo {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.55;
+  }
+  70% {
+    transform: scale(1.45);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.45);
+    opacity: 0;
+  }
+}
+
+.node__type {
+  text-anchor: middle;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  fill: var(--text-dim);
+  pointer-events: none;
+}
+
+.node--dep .node__type {
+  fill: var(--layer-dep);
+}
+
+.node--code .node__type {
+  fill: var(--layer-code);
+}
+
+.node--infra .node__type {
+  fill: var(--layer-infra);
+}
+
+.node__key {
+  text-anchor: middle;
+  font-family: var(--mono);
+  font-size: 11px;
+  fill: var(--text-dim);
+  pointer-events: none;
+}
+
+.node--selected .node__key {
+  fill: var(--text);
+  font-weight: 600;
+}
+
+.node__count {
+  fill: var(--sev-critical);
+  stroke: var(--bg-deep);
+  stroke-width: 2;
+}
+
+.node__count-text {
+  text-anchor: middle;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  fill: var(--on-accent);
+  pointer-events: none;
+}
+
+/* ---- Inspector ---------------------------------------------------------------------------- */
+
+.inspector {
+  align-self: start;
+  position: sticky;
+  top: calc(var(--topbar-h) + 1rem);
+  max-height: calc(100dvh - var(--topbar-h) - 3rem);
+  overflow-y: auto;
+}
+
+.inspector__id {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.inspector__id .ms {
+  color: var(--accent-soft);
+}
+
+.inspector__key {
+  font-size: 0.78rem;
+  word-break: break-all;
+}
+
+.inspector__hot {
+  border-left-color: var(--sev-critical);
+  color: var(--sev-critical);
+}
+
+.inspector__idle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2.5rem 0.5rem;
+  text-align: center;
+  color: var(--text-mute);
+}
+
+.evidence {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: var(--radius);
+  background: var(--bg-deep);
+  border: 1px solid var(--border-soft);
+}
+
+.evidence__head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.evidence__message {
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--text-dim);
+}
+
+.join {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+}
+
+.join__dir {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+}
+
+.join code {
+  font-size: 0.74rem;
+}
+
+.join__seam {
+  grid-column: 1 / -1;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  color: var(--text-mute);
+}
+
+.join .chip {
+  grid-column: 2;
+  justify-self: start;
+}

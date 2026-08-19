@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, delay, map, of } from 'rxjs';
 
 import { environment } from '../config/environment';
-import { demoFindings, demoReport } from './demo-data';
+import { demoFindings, demoGraph, demoReport } from './demo-data';
 import {
   BundleProvenance,
   Chain,
@@ -129,7 +129,11 @@ export class ScanApi {
 
   getGraph(scanJobId: string): Observable<ResourceGraph> {
     if (environment.useDemoData) {
-      return this.demo({ scan_job_id: scanJobId, nodes: [], edges: [] });
+      // The fixture's own graph, not an empty one. An empty graph is a legitimate answer from
+      // the real endpoint (the graph stage has not run yet) and the screen renders it as
+      // exactly that — so returning it here would have demo mode permanently showing the
+      // "nothing to draw" state for the one screen that is entirely a drawing.
+      return this.demo({ ...demoGraph, scan_job_id: scanJobId });
     }
 
     return this.http.get<ResourceGraph>(`${this.base}/v1/scans/${scanJobId}/graph`);

@@ -1,0 +1,225 @@
+<div class="page page--wide">
+  <div class="page-head">
+    <div class="page-head__main">
+      <p class="eyebrow">
+        <span class="ms ms--xs" aria-hidden="true">bug_report</span>
+        Scan <code>{{ id() }}</code>
+      </p>
+      <h1>Findings</h1>
+      <p class="lede">
+        What the scanners reported, normalised onto the graph. A finding is evidence on a node —
+        it is not by itself a path to anything; that is what the chains are for.
+      </p>
+    </div>
+
+    <div class="page-head__actions">
+      <a class="btn btn--ghost btn--sm" [routerLink]="['/scans', id(), 'graph']">
+        <span class="ms ms--sm" aria-hidden="true">hub</span>
+        Resource graph
+      </a>
+      <a class="btn btn--ghost btn--sm" [routerLink]="['/scans', id(), 'ops']">
+        <span class="ms ms--sm" aria-hidden="true">conversion_path</span>
+        Pipeline ops
+      </a>
+    </div>
+  </div>
+
+  <app-scan-tabs [scanJobId]="id()" />
+
+  <div class="card filters">
+    <div class="filters__row">
+      <span class="filters__label">Layer</span>
+      <div class="seg" role="group" aria-label="Filter by layer">
+        <button
+          type="button"
+          class="seg__opt"
+          [attr.aria-pressed]="layer() === 'all'"
+          (click)="setLayer('all')"
+        >
+          All
+        </button>
+        @for (option of layers; track option) {
+          <button
+            type="button"
+            class="seg__opt"
+            [attr.aria-pressed]="layer() === option"
+            (click)="setLayer(option)"
+          >
+            {{ layerLabel[option] }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="filters__row">
+      <span class="filters__label">Minimum severity</span>
+      <div class="seg" role="group" aria-label="Filter by minimum severity">
+        @for (option of severities; track option) {
+          <button
+            type="button"
+            class="seg__opt"
+            [attr.aria-pressed]="minSeverity() === option"
+            (click)="setMinSeverity(option)"
+          >
+            {{ severityLabel(option) }}
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="state" role="status">
+      <span class="spinner" aria-hidden="true"></span>
+      Loading findings…
+    </div>
+  } @else if (error(); as message) {
+    <div class="card">
+      <p class="error" role="alert">
+        <span class="ms ms--sm" aria-hidden="true">error</span>
+        {{ message }}
+      </p>
+      <div class="actions">
+        <button type="button" class="btn btn--ghost btn--sm" (click)="retry()">Try again</button>
+      </div>
+    </div>
+  } @else if (findings().length === 0) {
+    <div class="empty">
+      <span class="ms ms--xl" aria-hidden="true">search_off</span>
+      <p>
+        Nothing matches. Either the scanners reported nothing at this severity and layer, or the
+        normalize stage has not run for this scan yet.
+      </p>
+      <a class="btn btn--ghost btn--sm" [routerLink]="['/scans', id(), 'ops']">
+        Check the pipeline
+      </a>
+    </div>
+  } @else {
+    <div class="tally card">
+      <div class="tally__head">
+        <h2 class="card__title">
+          <span class="ms ms--sm" aria-hidden="true">bar_chart</span>
+          Loaded so far
+        </h2>
+        <p class="card__sub">
+          {{ findings().length }} rows · server page size {{ appliedLimit() }}
+          @if (nextCursor()) {
+            · more available
+          }
+        </p>
+      </div>
+
+      <div class="tally__row">
+        @for (severity of severities; track severity) {
+          <div class="tally__cell">
+            <span class="sev" [class]="'sev--' + severity">{{ severityLabel(severity) }}</span>
+            <span class="tally__count num">{{ counts()[severity] }}</span>
+          </div>
+        }
+
+        @if (redactedCount() > 0) {
+          <div class="tally__cell">
+            <span
+              class="chip chip--warn"
+              title="A credential was removed from this text before any model saw it"
+            >
+              <span class="ms ms--xs" aria-hidden="true">shield_lock</span>
+              redacted
+            </span>
+            <span class="tally__count num">{{ redactedCount() }}</span>
+          </div>
+        }
+      </div>
+
+      <p class="hint">
+        These counts describe the rows loaded on this screen, not the whole scan — the endpoint
+        pages, so the rest is behind the cursor.
+      </p>
+    </div>
+
+    <div class="card card--flush">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Severity</th>
+              <th scope="col">Layer</th>
+              <th scope="col">Tool</th>
+              <th scope="col">Reference</th>
+              <th scope="col">Node</th>
+              <th scope="col">Message</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (finding of findings(); track finding.id) {
+              <tr>
+                <td>
+                  <span class="sev" [class]="'sev--' + finding.severity">
+                    {{ severityLabel(finding.severity) }}
+                  </span>
+                </td>
+                <td>
+                  <span class="chip" [class]="'chip--' + finding.layer">
+                    {{ layerLabel[finding.layer] }}
+                  </span>
+                </td>
+                <td class="mono">{{ finding.source_tool }}</td>
+                <td class="cell-refs">
+                  @if (finding.cwe_id) {
+                    <span class="chip chip--mute">{{ finding.cwe_id }}</span>
+                  }
+                  @if (finding.cve_id) {
+                    <span class="chip chip--mute">{{ finding.cve_id }}</span>
+                  }
+                  @if (!finding.cwe_id && !finding.cve_id) {
+                    <span class="mute">—</span>
+                  }
+                </td>
+                <td>
+                  <a
+                    class="cell-node"
+                    [routerLink]="['/scans', id(), 'graph']"
+                    [queryParams]="{ node: finding.node_ref }"
+                    [title]="'Show ' + finding.node_ref + ' on the resource graph'"
+                  >
+                    <code>{{ finding.node_ref }}</code>
+                  </a>
+                </td>
+                <td class="cell-message">
+                  {{ finding.message }}
+                  @if (finding.redacted) {
+                    <span
+                      class="chip chip--warn"
+                      title="A credential was removed from this text before any model saw it"
+                    >
+                      redacted
+                    </span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    @if (nextCursor()) {
+      <div class="actions actions--center">
+        <button
+          type="button"
+          class="btn btn--ghost"
+          [disabled]="loadingMore()"
+          (click)="loadMore()"
+        >
+          @if (loadingMore()) {
+            <span class="spinner" aria-hidden="true"></span>
+            Loading…
+          } @else {
+            <span class="ms ms--sm" aria-hidden="true">expand_more</span>
+            Load more
+          }
+        </button>
+      </div>
+    }
+  }
+</div>

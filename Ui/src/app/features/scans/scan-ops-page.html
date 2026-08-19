@@ -1,155 +1,353 @@
-<div class="panel panel--wide">
-  <h1>Scan ops</h1>
-  <p class="lede">
-    Job <code>{{ id() }}</code> — manually drives the pipeline stages a queue worker will
-    eventually run automatically. See the report at
-    <a [routerLink]="['/reports', id()]">/reports/{{ id() }}</a> once the audit stage retains one.
-  </p>
+<div class="page page--wide">
+  <div class="page-head">
+    <div class="page-head__main">
+      <p class="eyebrow">
+        <span class="ms ms--xs" aria-hidden="true">conversion_path</span>
+        Scan <code>{{ id() }}</code>
+        @if (demoMode) {
+          <span class="chip chip--warn">
+            <span class="chip__dot" aria-hidden="true"></span>
+            demo — canned stage output
+          </span>
+        }
+      </p>
+      <h1>Pipeline ops</h1>
+      <p class="lede">
+        Drives the stages a queue worker will eventually run on its own. Each button below is a
+        real write against this job, in order — the graph stage has to have run before the audit
+        stage has anything to reason over.
+      </p>
+    </div>
 
-  @if (demoMode) {
-    <p class="gate" role="note">Demo mode — stage runs return canned output, not a real pipeline.</p>
-  }
+    <div class="page-head__actions">
+      <button type="button" class="btn btn--ghost btn--sm" (click)="loadJob(id())">
+        <span class="ms ms--sm" aria-hidden="true">refresh</span>
+        Refresh
+      </button>
+    </div>
+  </div>
 
-  <h2>Status</h2>
+  <app-scan-tabs [scanJobId]="id()" />
+
+  <!-- Status -->
   @if (jobLoading()) {
-    <p class="hint">Loading…</p>
+    <div class="state state--row" role="status">
+      <span class="spinner" aria-hidden="true"></span>
+      Loading the job status…
+    </div>
   } @else if (jobError(); as message) {
-    <p class="error" role="alert">{{ message }}</p>
+    <p class="error" role="alert">
+      <span class="ms ms--sm" aria-hidden="true">error</span>
+      {{ message }}
+    </p>
   } @else if (job(); as j) {
-    <div class="card">
-      <table>
-        <tbody>
-          <tr>
-            <th>Status</th>
-            <td><span class="badge">{{ ScanStatusName[j.status] ?? j.status }}</span></td>
-          </tr>
-          <tr>
-            <th>Stage</th>
-            <td><span class="badge">{{ ScanStageName[j.stage] ?? j.stage }}</span></td>
-          </tr>
-          <tr>
-            <th>Corpus version</th>
-            <td><code>{{ j.corpusVersion }}</code></td>
-          </tr>
-          <tr>
-            <th>Bundle purged</th>
-            <td>{{ j.bundlePurged ? 'yes' : 'no' }}</td>
-          </tr>
-          @if (j.failureReason) {
-            <tr>
-              <th>Failure</th>
-              <td class="error" style="margin: 0">{{ j.failureReason }}</td>
-            </tr>
-          }
-        </tbody>
-      </table>
-      <div class="actions">
-        <button type="button" class="secondary" (click)="loadJob(id())">Refresh</button>
+    <section class="card status">
+      <div class="status__head">
+        <div class="status__id">
+          <span class="ms ms--lg status__icon" aria-hidden="true">radar</span>
+          <div>
+            <div class="status__chips">
+              <span [class]="statusChipClass()">{{ statusName() }}</span>
+              <span class="badge">stage: {{ ScanStageName[j.stage] ?? j.stage }}</span>
+              @if (j.bundlePurged) {
+                <span class="chip chip--mute" title="The stored tarball has been deleted">
+                  <span class="ms ms--xs" aria-hidden="true">delete_sweep</span>
+                  bundle purged
+                </span>
+              }
+            </div>
+            <code class="status__job">{{ j.scanJobId }}</code>
+          </div>
+        </div>
+
+        <dl class="status__facts">
+          <div>
+            <dt>Corpus</dt>
+            <dd><code>{{ j.corpusVersion }}</code></dd>
+          </div>
+          <div>
+            <dt>Started</dt>
+            <dd class="mono">{{ j.startedAt }}</dd>
+          </div>
+          <div>
+            <dt>Completed</dt>
+            <dd class="mono">{{ j.completedAt ?? '—' }}</dd>
+          </div>
+        </dl>
       </div>
-    </div>
+
+      @if (j.failureReason) {
+        <p class="error" role="alert">
+          <span class="ms ms--sm" aria-hidden="true">error</span>
+          {{ j.failureReason }}
+        </p>
+      }
+
+      <div class="stepper">
+        @for (step of steps(); track step.name) {
+          <div
+            class="step"
+            [class.step--done]="step.state === 'done'"
+            [class.step--current]="step.state === 'current'"
+            [class.step--failed]="step.state === 'failed'"
+          >
+            <span class="step__dot">
+              <span class="ms ms--xs" aria-hidden="true">
+                {{ step.state === 'done' ? 'check' : step.state === 'failed' ? 'close' : step.icon }}
+              </span>
+            </span>
+            <span class="step__label">{{ step.name }}</span>
+          </div>
+        }
+      </div>
+    </section>
   }
 
-  <h2>1. Run graph stage</h2>
-  <p class="field-hint">Normalize → graph → candidate chains. Requires <code>scan:write</code>.</p>
-  @if (!canWrite) {
-    <p class="gate">Requires the <code>scan:write</code> scope.</p>
-  } @else {
-    <div class="card">
-      <div class="actions" style="margin-top: 0">
-        <button type="button" class="primary" [disabled]="graphRunning()" (click)="runGraphStage()">
-          {{ graphRunning() ? 'Running…' : 'Run graph stage' }}
-        </button>
-      </div>
-
-      @if (graphError(); as message) {
-        <p class="error" role="alert">{{ message }}</p>
-      }
-
-      @if (graphResult(); as result) {
-        <table>
-          <tbody>
-            <tr>
-              <th>Findings</th>
-              <td>{{ result.findings }}</td>
-            </tr>
-            <tr>
-              <th>Candidate chains</th>
-              <td>{{ result.candidateChains }}</td>
-            </tr>
-            <tr>
-              <th>Redacted / hardcoded secrets</th>
-              <td>{{ result.messagesRedacted }} / {{ result.hardcodedSecrets }}</td>
-            </tr>
-            <tr>
-              <th>Terraform / lock / Dockerfiles</th>
-              <td>{{ result.terraformFiles }} / {{ result.lockFiles }} / {{ result.dockerfiles }}</td>
-            </tr>
-          </tbody>
-        </table>
-        <p class="field-hint">Resource graph (paste into the debate playground):</p>
-        <pre class="wire">{{ result.resourceGraph }}</pre>
-      }
+  <!-- Stage 1 -->
+  <section class="section">
+    <div class="section__head">
+      <h2><span class="section__num">01.</span>Run graph stage</h2>
+      <span class="card__sub">normalize → graph → candidate chains</span>
     </div>
-  }
 
-  <h2>2. Run audit stage</h2>
-  <p class="field-hint">Retrieve → debate → report → retention. Requires <code>scan:write</code>.</p>
-  @if (!canWrite) {
-    <p class="gate">Requires the <code>scan:write</code> scope.</p>
-  } @else {
-    <div class="card">
-      <div class="actions" style="margin-top: 0">
-        <button type="button" class="primary" [disabled]="auditRunning()" (click)="runAuditStage()">
-          {{ auditRunning() ? 'Running…' : 'Run audit stage' }}
-        </button>
-      </div>
-
-      @if (auditError(); as message) {
-        <p class="error" role="alert">{{ message }}</p>
-      }
-
-      @if (auditResult(); as result) {
-        <table>
-          <tbody>
-            <tr>
-              <th>Outcome</th>
-              <td>{{ result.outcome }}</td>
-            </tr>
-            <tr>
-              <th>Rounds / citations</th>
-              <td>{{ result.rounds }} / {{ result.citations }}</td>
-            </tr>
-            <tr>
-              <th>Report retained</th>
-              <td>{{ result.report_retained ? 'yes' : 'no' }}</td>
-            </tr>
-            @if (result.report_id) {
-              <tr>
-                <th>Report</th>
-                <td><a [routerLink]="['/reports', result.report_id]">{{ result.report_id }}</a></td>
-              </tr>
+    @if (!canWrite) {
+      <p class="gate">
+        <span class="ms ms--sm" aria-hidden="true">lock</span>
+        Requires the <code>scan:write</code> scope.
+      </p>
+    } @else {
+      <div class="card">
+        <div class="actions">
+          <button
+            type="button"
+            class="btn btn--primary"
+            [disabled]="graphRunning()"
+            (click)="runGraphStage()"
+          >
+            @if (graphRunning()) {
+              <span class="spinner" aria-hidden="true"></span>
+            } @else {
+              <span class="ms ms--sm" aria-hidden="true">play_arrow</span>
             }
-          </tbody>
-        </table>
-        <p class="field-hint">{{ result.summary }}</p>
-      }
-    </div>
-  }
+            {{ graphRunning() ? 'Running…' : 'Run graph stage' }}
+          </button>
 
-  <h2>3. Purge bundle</h2>
-  <p class="field-hint">Deletes the stored bundle ahead of retention. Admin role only.</p>
-  @if (!isAdmin) {
-    <p class="gate">Requires the admin role.</p>
-  } @else {
-    <div class="card">
-      <div class="actions" style="margin-top: 0">
-        <button type="button" class="danger" [disabled]="purging()" (click)="purge()">
-          {{ purging() ? 'Purging…' : 'Purge bundle' }}
-        </button>
+          <a class="btn btn--ghost btn--sm" [routerLink]="['/scans', id(), 'findings']">
+            <span class="ms ms--sm" aria-hidden="true">bug_report</span>
+            View findings
+          </a>
+          <a class="btn btn--ghost btn--sm" [routerLink]="['/scans', id(), 'graph']">
+            <span class="ms ms--sm" aria-hidden="true">hub</span>
+            View resource graph
+          </a>
+        </div>
+
+        @if (graphError(); as message) {
+          <p class="error" role="alert">
+            <span class="ms ms--sm" aria-hidden="true">error</span>
+            {{ message }}
+          </p>
+        }
+
+        @if (graphResult(); as result) {
+          <div class="grid grid--kpi">
+            <div class="kpi">
+              <div class="kpi__head">
+                <span class="kpi__label">Findings</span>
+                <span class="ms ms--sm mute" aria-hidden="true">bug_report</span>
+              </div>
+              <span class="kpi__value">{{ result.findings }}</span>
+            </div>
+            <div class="kpi">
+              <div class="kpi__head">
+                <span class="kpi__label">Candidate chains</span>
+                <span class="ms ms--sm mute" aria-hidden="true">alt_route</span>
+              </div>
+              <span class="kpi__value kpi__value--accent">{{ result.candidateChains }}</span>
+            </div>
+            <div class="kpi">
+              <div class="kpi__head">
+                <span class="kpi__label">Nodes / edges</span>
+                <span class="ms ms--sm mute" aria-hidden="true">hub</span>
+              </div>
+              <span class="kpi__value">{{ result.nodes.length }} / {{ result.edges.length }}</span>
+            </div>
+            <div class="kpi">
+              <div class="kpi__head">
+                <span class="kpi__label">Secrets redacted</span>
+                <span class="ms ms--sm mute" aria-hidden="true">shield_lock</span>
+              </div>
+              <span class="kpi__value" [class.kpi__value--warn]="result.hardcodedSecrets > 0">
+                {{ result.messagesRedacted }} / {{ result.hardcodedSecrets }}
+              </span>
+              <span class="kpi__foot">messages / hardcoded</span>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <tbody>
+                <tr>
+                  <th scope="row">Terraform / lock / Dockerfiles</th>
+                  <td class="num">
+                    {{ result.terraformFiles }} / {{ result.lockFiles }} / {{ result.dockerfiles }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="card__head">
+            <span class="card__sub">
+              Rendered resource graph — this is the text the debate playground takes.
+            </span>
+            <button type="button" class="btn btn--ghost btn--sm" (click)="copyResourceGraph()">
+              <span class="ms ms--sm" aria-hidden="true">
+                {{ copied() ? 'check' : 'content_copy' }}
+              </span>
+              {{ copied() ? 'Copied' : 'Copy' }}
+            </button>
+          </div>
+          <pre class="wire">{{ result.resourceGraph }}</pre>
+
+          <p class="hint">{{ result.disclaimer }}</p>
+
+          @if (hasGraphOutput()) {
+            <div class="actions">
+              <a class="btn btn--soft btn--sm" [routerLink]="['/scans', id(), 'graph']">
+                <span class="ms ms--sm" aria-hidden="true">hub</span>
+                Open the topology
+              </a>
+            </div>
+          }
+        }
       </div>
-      @if (purgeError(); as message) {
-        <p class="error" role="alert">{{ message }}</p>
-      }
+    }
+  </section>
+
+  <!-- Stage 2 -->
+  <section class="section">
+    <div class="section__head">
+      <h2><span class="section__num">02.</span>Run audit stage</h2>
+      <span class="card__sub">retrieve → debate → report → retention</span>
     </div>
-  }
+
+    @if (!canWrite) {
+      <p class="gate">
+        <span class="ms ms--sm" aria-hidden="true">lock</span>
+        Requires the <code>scan:write</code> scope.
+      </p>
+    } @else {
+      <div class="card">
+        <div class="actions">
+          <button
+            type="button"
+            class="btn btn--primary"
+            [disabled]="auditRunning()"
+            (click)="runAuditStage()"
+          >
+            @if (auditRunning()) {
+              <span class="spinner" aria-hidden="true"></span>
+            } @else {
+              <span class="ms ms--sm" aria-hidden="true">gavel</span>
+            }
+            {{ auditRunning() ? 'Running…' : 'Run audit stage' }}
+          </button>
+          <span class="hint">
+            A live run is several sequential model calls — expect it to sit for a minute or two.
+          </span>
+        </div>
+
+        @if (auditError(); as message) {
+          <p class="error" role="alert">
+            <span class="ms ms--sm" aria-hidden="true">error</span>
+            {{ message }}
+          </p>
+        }
+
+        @if (auditResult(); as result) {
+          <div class="table-wrap">
+            <table>
+              <tbody>
+                <tr>
+                  <th scope="row">Outcome</th>
+                  <td><span class="chip chip--accent">{{ result.outcome }}</span></td>
+                </tr>
+                <tr>
+                  <th scope="row">Rounds / citations</th>
+                  <td class="num">{{ result.rounds }} / {{ result.citations }}</td>
+                </tr>
+                <tr>
+                  <th scope="row">Report retained</th>
+                  <td>{{ result.report_retained ? 'yes' : 'no' }}</td>
+                </tr>
+                @if (result.report_id) {
+                  <tr>
+                    <th scope="row">Report</th>
+                    <td>
+                      <a [routerLink]="['/reports', result.report_id]">
+                        <code>{{ result.report_id }}</code>
+                      </a>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <p class="field-hint">{{ result.summary }}</p>
+
+          @if (result.report_id) {
+            <div class="actions">
+              <a class="btn btn--soft" [routerLink]="['/reports', result.report_id]">
+                <span class="ms ms--sm" aria-hidden="true">description</span>
+                Open the draft audit
+              </a>
+            </div>
+          } @else {
+            <p class="hint">
+              This run was submitted with <code>retain_report</code> off, so there is no report to
+              open — the audit still ran.
+            </p>
+          }
+        }
+      </div>
+    }
+  </section>
+
+  <!-- Danger zone -->
+  <section class="section">
+    <div class="section__head">
+      <h2><span class="section__num">03.</span>Purge bundle</h2>
+      <span class="card__sub">deletes the stored tarball ahead of retention</span>
+    </div>
+
+    @if (!isAdmin) {
+      <p class="gate-admin">
+        <span class="ms ms--sm" aria-hidden="true">lock</span>
+        Requires the admin role.
+      </p>
+    } @else {
+      <div class="card danger-zone">
+        <p class="field-hint">
+          Removes the uploaded artifacts for this job. The report, findings and graph survive —
+          the bundle they were derived from does not, and it cannot be re-derived.
+        </p>
+
+        <div class="actions">
+          <button type="button" class="btn btn--danger" [disabled]="purging()" (click)="purge()">
+            <span class="ms ms--sm" aria-hidden="true">delete_forever</span>
+            {{ purging() ? 'Purging…' : 'Purge bundle' }}
+          </button>
+        </div>
+
+        @if (purgeError(); as message) {
+          <p class="error" role="alert">
+            <span class="ms ms--sm" aria-hidden="true">error</span>
+            {{ message }}
+          </p>
+        }
+      </div>
+    }
+  </section>
 </div>

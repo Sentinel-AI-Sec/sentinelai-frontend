@@ -1,4 +1,4 @@
-<article class="chain">
+<article class="chain" [class.chain--rejected]="chain().status === 'rejected'">
   <header class="chain__head">
     <div class="chain__title">
       <span class="rank">#{{ chain().priority }}</span>
@@ -8,7 +8,9 @@
     </div>
 
     <div class="chain__meta">
-      <span class="status" [class]="'status--' + chain().status">{{ chain().status }}</span>
+      <span class="chip chip--square status" [class]="statusClass(chain().status)">
+        {{ chain().status }}
+      </span>
       <app-confidence-badge [level]="chain().min_confidence" />
     </div>
   </header>
@@ -25,7 +27,7 @@
 
   <ol class="hops">
     @for (item of hops(); track item.hop.order) {
-      <li class="hop">
+      <li class="hop" [class.hop--target]="$last && hops().length > 1">
         @if (!$first) {
           <div class="join">
             <span class="join__line" aria-hidden="true"></span>
@@ -39,13 +41,24 @@
             <code class="hop__node">{{ item.hop.node_key ?? 'unknown node' }}</code>
 
             @if (item.hop.blue_validated) {
-              <span class="check check--ok" title="Blue validated this step">validated</span>
+              <span class="check check--ok" title="Blue validated this step">
+                <span class="ms ms--xs" aria-hidden="true">verified</span>
+                validated
+              </span>
             } @else {
               <span class="check check--open" title="Blue did not validate this step">
+                <span class="ms ms--xs" aria-hidden="true">help</span>
                 unvalidated
               </span>
             }
           </div>
+
+          @if ($last && hops().length > 1) {
+            <p class="reached">
+              <span class="ms ms--xs" aria-hidden="true">flag</span>
+              End of the path — this is what the chain claims to reach.
+            </p>
+          }
 
           <p class="hop__technique">
             Technique
@@ -62,8 +75,11 @@
           @if (item.finding; as finding) {
             <div class="evidence">
               <div class="evidence__head">
-                <span class="sev" [class]="'sev--' + finding.severity">
+                <span class="sev" [class]="severityClass(finding.severity)">
                   {{ severityLabel(finding.severity) }}
+                </span>
+                <span class="chip chip--square" [class]="'chip--' + finding.layer">
+                  {{ finding.layer }}
                 </span>
                 <span class="tool">{{ finding.source_tool }}</span>
                 @if (finding.cwe_id) {

@@ -9,6 +9,11 @@ import { authGuard } from './core/auth/auth-guard';
  * management. Each of those screens gates its own write actions on the signed-in role/scope
  * (the backend enforces the same checks; the UI gate exists so someone without permission sees
  * why, rather than a raw 403).
+ *
+ * `/scans/:id/graph` and `/scans/:id/findings` are read-only views of the two SEC-40 endpoints
+ * that had no screen at all before — the resource graph and the findings page. They sit under
+ * the scan rather than beside it because neither means anything without one: a graph is always
+ * *this* scan's graph.
  */
 export const routes: Routes = [
   {
@@ -50,6 +55,19 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./features/scans/scan-ops-page').then((m) => m.ScanOpsPage),
     title: 'Scan ops · SentinelAI',
+  },
+  {
+    path: 'scans/:id/graph',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/scans/resource-graph-page').then((m) => m.ResourceGraphPage),
+    title: 'Resource graph · SentinelAI',
+  },
+  {
+    path: 'scans/:id/findings',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/scans/findings-page').then((m) => m.FindingsPage),
+    title: 'Findings · SentinelAI',
   },
   {
     path: 'debate',

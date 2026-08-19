@@ -65,6 +65,10 @@ class FakeAuth {
   role() {
     return this.admin ? 'admin' : 'analyst';
   }
+  /** The screen files the job into the tenant-keyed recents index when its status loads. */
+  tenantId() {
+    return 'tenant-1';
+  }
 }
 
 describe('ScanOpsPage', () => {

@@ -1,78 +1,118 @@
-.home {
-  max-width: 34rem;
-  margin: 4rem auto;
-  padding: 0 1rem;
+/* Layout local to the console landing screen; everything else comes from the global system. */
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
 }
 
-h1 {
-  margin: 0 0 0.6rem;
-  font-size: 1.5rem;
-  font-weight: 650;
-  letter-spacing: -0.02em;
+/* Input plus its action on one line, with the input taking whatever is left. */
+.openrow {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
 }
 
-.lede {
-  margin: 0 0 1.5rem;
-  font-size: 0.9rem;
-  line-height: 1.6;
+.openrow input {
+  flex: 1 1 14rem;
+  min-width: 0;
+  font-size: 0.85rem;
+}
+
+.scopes {
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: flex-start;
+}
+
+.scopes code {
+  padding: 0.05rem 0.35rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-deep);
+  border: 1px solid var(--border-soft);
+  font-size: 0.66rem;
   color: var(--text-dim);
 }
 
-.row {
+/* ---- Recents ---------------------------------------------------------------------------- */
+
+.recents,
+.projects {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
-  gap: 0.5rem;
+  flex-direction: column;
+  gap: 0.3rem;
 }
 
-input {
+.recents__row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.recents__link {
   flex: 1;
-  padding: 0.55rem 0.7rem;
-  border-radius: var(--radius);
-  border: 1px solid var(--border-strong);
-  background: var(--surface-2);
-  color: var(--text);
-  font: inherit;
-  font-size: 0.9rem;
-}
-
-input:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-}
-
-button[type='submit'] {
-  padding: 0.55rem 1.1rem;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem 0.6rem;
   border-radius: var(--radius);
   border: 1px solid transparent;
-  background: var(--accent);
-  color: var(--accent-contrast);
-  font: inherit;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-button[type='submit']:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.hint {
-  margin: 0.8rem 0 0;
-  font-size: 0.78rem;
   color: var(--text-dim);
+  text-decoration: none;
 }
 
-.link {
-  margin-top: 1.5rem;
-  padding: 0;
-  background: none;
-  border: 0;
-  color: var(--accent);
-  font: inherit;
-  font-size: 0.85rem;
-  cursor: pointer;
+.recents__link:hover {
+  background: var(--surface-2);
+  border-color: var(--border-soft);
+  color: var(--text);
+  text-decoration: none;
 }
 
-.link:hover {
-  text-decoration: underline;
+.recents__icon {
+  color: var(--tier-certain);
+}
+
+.recents__icon--report {
+  color: var(--tier-unresolved);
+}
+
+.recents__body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.recents__label {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: inherit;
+}
+
+.recents__meta {
+  font-size: 0.66rem;
+  color: var(--text-mute);
+}
+
+/* ---- Project mini-list ------------------------------------------------------------------ */
+
+.projects__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+}
+
+.projects__name {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--text-dim);
 }

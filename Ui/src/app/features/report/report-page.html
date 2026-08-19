@@ -4,59 +4,168 @@
     Loading the audit…
   </div>
 } @else if (error(); as message) {
-  <div class="state state--error" role="alert">
+  <div class="state" role="alert">
+    <span class="ms ms--xl state__icon" aria-hidden="true">report</span>
     <h2>Could not load this report</h2>
-    <p>{{ message }}</p>
-    <button type="button" (click)="retry()">Try again</button>
-    <a routerLink="/">Back</a>
+    <p class="error">{{ message }}</p>
+    <div class="actions">
+      <button type="button" class="btn btn--primary" (click)="retry()">
+        <span class="ms ms--sm" aria-hidden="true">refresh</span>
+        Try again
+      </button>
+      <a class="btn btn--ghost" routerLink="/">Back to dashboard</a>
+    </div>
   </div>
 } @else if (report(); as report) {
-  <article class="report">
-    <header class="report__head">
-      <div>
+  <article class="page page--wide report rise">
+    <header class="page-head">
+      <div class="page-head__main">
         <p class="eyebrow">
+          <span class="ms ms--xs" aria-hidden="true">radar</span>
           Scan <code>{{ report.scan_job_id }}</code>
         </p>
-        <h1>Security audit</h1>
+        <h1>Draft security audit</h1>
+        <p class="lede">
+          What the Red/Blue debate concluded about this scan, and how far each conclusion can be
+          trusted.
+        </p>
       </div>
 
-      <dl class="facts">
-        <div>
-          <dt>Corpus</dt>
-          <dd>{{ report.corpus_version }}</dd>
-        </div>
-        <div>
-          <dt>Generated</dt>
-          <dd>{{ report.created_at | date: 'medium' }}</dd>
-        </div>
-        <div>
-          <dt>Model cost</dt>
-          <dd>
-            {{ report.cost.total | currency: report.cost.currency }}
-            <span class="sub">{{ report.cost.model_calls }} calls</span>
-          </dd>
-        </div>
-        <div>
-          <dt>Tenant</dt>
-          <dd>
-            <code>{{ tenantId() ?? '—' }}</code>
-          </dd>
-        </div>
-      </dl>
+      <div class="page-head__actions no-print">
+        <a class="btn btn--ghost btn--sm" [routerLink]="['/scans', report.scan_job_id, 'graph']">
+          <span class="ms ms--sm" aria-hidden="true">hub</span>
+          Resource graph
+        </a>
+        <a class="btn btn--ghost btn--sm" [routerLink]="['/scans', report.scan_job_id, 'findings']">
+          <span class="ms ms--sm" aria-hidden="true">bug_report</span>
+          All findings
+        </a>
+        <button type="button" class="btn btn--soft btn--sm" (click)="print()">
+          <span class="ms ms--sm" aria-hidden="true">print</span>
+          Print / export
+        </button>
+      </div>
     </header>
+
+    <div class="grid grid--kpi">
+      <div class="kpi">
+        <div class="kpi__head">
+          <span class="kpi__label">Candidate chains</span>
+          <span class="ms ms--sm" aria-hidden="true">alt_route</span>
+        </div>
+        <div class="kpi__row">
+          <span class="kpi__value">{{ liveChains().length }}</span>
+        </div>
+        <div class="kpi__foot">
+          <span>{{ rejectedChains().length }} refuted by Blue</span>
+        </div>
+      </div>
+
+      <div class="kpi">
+        <div class="kpi__head">
+          <span class="kpi__label">Weakest join</span>
+          <span class="ms ms--sm" aria-hidden="true">link</span>
+        </div>
+        <div class="kpi__row">
+          @if (weakestJoin(); as tier) {
+            <span class="kpi__value kpi__value--tier" [class]="'tier--' + tier">{{ tier }}</span>
+          } @else {
+            <span class="kpi__value mute">—</span>
+          }
+        </div>
+        <div class="kpi__foot">
+          <span>Across every live chain</span>
+        </div>
+      </div>
+
+      <div class="kpi">
+        <div class="kpi__head">
+          <span class="kpi__label">Model cost</span>
+          <span class="ms ms--sm" aria-hidden="true">savings</span>
+        </div>
+        <div class="kpi__row">
+          <span class="kpi__value">{{ report.cost.total | currency: report.cost.currency }}</span>
+          @if (!report.cost.rated) {
+            <span class="chip chip--warn" title="At least one model call had no known price">
+              unrated
+            </span>
+          }
+        </div>
+        <div class="kpi__foot">
+          <span>{{ report.cost.model_calls }} model calls</span>
+        </div>
+      </div>
+
+      <div class="kpi">
+        <div class="kpi__head">
+          <span class="kpi__label">Corpus</span>
+          <span class="ms ms--sm" aria-hidden="true">book_2</span>
+        </div>
+        <div class="kpi__row">
+          <span class="kpi__value kpi__value--sm mono">{{ report.corpus_version }}</span>
+        </div>
+        <div class="kpi__foot">
+          <span>Generated {{ report.created_at | date: 'medium' }}</span>
+        </div>
+      </div>
+    </div>
 
     <app-draft-banner />
 
-    <section class="summary">
-      <h2>What the debate concluded</h2>
-      <p>{{ report.summary }}</p>
+    <section class="card card--raised section">
+      <div class="section__head">
+        <h2><span class="section__num">01.</span>What the debate concluded</h2>
+      </div>
+      <p class="summary">{{ report.summary }}</p>
     </section>
 
-    <section class="chains">
-      <h2>
-        Candidate chains
-        <span class="count">{{ liveChains().length }}</span>
-      </h2>
+    <section class="card section">
+      <div class="section__head">
+        <h2><span class="section__num">02.</span>Severity posture</h2>
+        <span class="card__sub">
+          {{ findings().length }} finding{{ findings().length === 1 ? '' : 's' }} on this scan
+        </span>
+      </div>
+
+      @if (severityBands().length === 0) {
+        <p class="hint">
+          No findings were loaded for this scan, so there is no severity mix to show. The chains
+          below still stand on their own — they just render without the evidence behind each hop.
+        </p>
+      } @else {
+        <div
+          class="posture"
+          role="img"
+          [attr.aria-label]="'Severity mix across ' + findings().length + ' findings'"
+        >
+          @for (band of severityBands(); track band.level) {
+            <span
+              class="posture__band"
+              [class]="'posture--' + band.level"
+              [style.width.%]="band.percent"
+              [title]="band.count + ' ' + band.label"
+            ></span>
+          }
+        </div>
+
+        <ul class="legend">
+          @for (band of severityBands(); track band.level) {
+            <li>
+              <span class="sev" [class]="'sev--' + band.level">{{ band.label }}</span>
+              <span class="legend__count num">{{ band.count }}</span>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <section class="chains section">
+      <div class="section__head">
+        <h2>
+          <span class="section__num">03.</span>Candidate chains
+          <span class="count">{{ liveChains().length }}</span>
+        </h2>
+      </div>
 
       @if (liveChains().length === 0) {
         <p class="empty">
@@ -71,11 +180,13 @@
     </section>
 
     @if (rejectedChains().length > 0) {
-      <section class="chains chains--refuted">
-        <h2>
-          Refuted by Blue
-          <span class="count">{{ rejectedChains().length }}</span>
-        </h2>
+      <section class="chains section">
+        <div class="section__head">
+          <h2>
+            <span class="section__num">04.</span>Refuted by Blue
+            <span class="count">{{ rejectedChains().length }}</span>
+          </h2>
+        </div>
         <p class="note">
           Red proposed these and Blue found evidence against them. They are kept visible so the
           reasoning can be checked, not because they need action.
@@ -87,21 +198,46 @@
       </section>
     }
 
-    <section class="citations">
-      <h2>Sources cited</h2>
+    <section class="card section">
+      <div class="section__head">
+        <h2><span class="section__num">05.</span>Sources cited</h2>
+        <span class="card__sub">{{ report.citations.length }} from the corpus</span>
+      </div>
+
       @if (report.citations.length === 0) {
-        <p class="empty">No knowledge was cited for this audit.</p>
+        <p class="hint">No knowledge was cited for this audit.</p>
       } @else {
-        <ul>
+        <ul class="citations">
           @for (citation of report.citations; track citation.knowledge_id) {
             <li>
               <code>{{ citation.knowledge_id }}</code>
-              <span>{{ citation.source }}</span>
-              <span class="collection">{{ citation.collection }}</span>
+              <span class="citations__source">{{ citation.source }}</span>
+              <span class="chip chip--square chip--mute">{{ citation.collection }}</span>
             </li>
           }
         </ul>
       }
     </section>
+
+    <footer class="card card--sunken provenance">
+      <div class="provenance__item">
+        <span class="provenance__label">Report</span>
+        <code>{{ report.report_id }}</code>
+      </div>
+      <div class="provenance__item">
+        <span class="provenance__label">Framing</span>
+        <span class="chip chip--accent">{{ report.framing }}</span>
+      </div>
+      <div class="provenance__item">
+        <span class="provenance__label">Retained</span>
+        <span class="chip" [class]="report.retained ? 'chip--ok' : 'chip--mute'">
+          {{ report.retained ? 'yes' : 'no' }}
+        </span>
+      </div>
+      <div class="provenance__item">
+        <span class="provenance__label">Tenant</span>
+        <code>{{ tenantId() ?? '—' }}</code>
+      </div>
+    </footer>
   </article>
 }

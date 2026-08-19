@@ -1,46 +1,65 @@
-<div class="login">
-  <form class="card" (ngSubmit)="submit()">
-    <h1>Sign in</h1>
-    <p class="lede">SentinelAI shows the security audit for your organisation only.</p>
+<app-auth-canvas>
+  <form class="form" (ngSubmit)="submit()">
+    <header class="form__head">
+      <p class="eyebrow">Console access</p>
+      <h1>Sign in</h1>
+      <p class="lede">SentinelAI shows the security audit for your organisation only.</p>
+    </header>
 
     @if (demoMode) {
-      <p class="demo" role="note">
-        Demo mode — no backend is being called, so any email and password will do.
+      <p class="gate" role="note">
+        <span class="ms ms--sm" aria-hidden="true">science</span>
+        <span>Demo mode — no backend is being called, so any email and password will do.</span>
       </p>
     }
 
-    <label for="email">Email</label>
-    <input
-      id="email"
-      name="email"
-      type="email"
-      autocomplete="username"
-      required
-      [ngModel]="email()"
-      (ngModelChange)="email.set($event)"
-    />
+    <div class="field">
+      <label for="email">Email</label>
+      <input
+        id="email"
+        name="email"
+        type="email"
+        autocomplete="username"
+        placeholder="you@example.com"
+        required
+        [ngModel]="email()"
+        (ngModelChange)="email.set($event)"
+      />
+    </div>
 
-    <label for="password">Password</label>
-    <input
-      id="password"
-      name="password"
-      type="password"
-      autocomplete="current-password"
-      required
-      [ngModel]="password()"
-      (ngModelChange)="password.set($event)"
-    />
+    <div class="field">
+      <label for="password">Password</label>
+      <input
+        id="password"
+        name="password"
+        type="password"
+        autocomplete="current-password"
+        required
+        [ngModel]="password()"
+        (ngModelChange)="password.set($event)"
+      />
+    </div>
 
     @if (error(); as message) {
-      <p class="error" role="alert">{{ message }}</p>
+      <p class="error" role="alert">
+        <span class="ms ms--sm" aria-hidden="true">error</span>
+        <span>{{ message }}</span>
+      </p>
     }
 
-    <button type="submit" [disabled]="submitting()">
-      {{ submitting() ? 'Signing in…' : 'Sign in' }}
+    <button type="submit" class="btn btn--primary btn--block btn--lg" [disabled]="submitting()">
+      @if (submitting()) {
+        <span class="spinner" aria-hidden="true"></span>
+        Signing in…
+      } @else {
+        <span class="ms ms--sm" aria-hidden="true">login</span>
+        Sign in
+      }
     </button>
 
-    <p class="register-link">
-      No account? <a routerLink="/register">Create an organisation</a>
+    <p class="form__foot">
+      No account?
+      <a routerLink="/register">Create an organisation</a>
     </p>
   </form>
-</div>
+</app-auth-canvas>

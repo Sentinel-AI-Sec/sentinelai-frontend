@@ -1,0 +1,105 @@
+/**
+ * SentinelAI console — design tokens.
+ *
+ * The console is dark by intent, not by preference: it is read next to terminals and CI logs,
+ * often on a wall screen, and the whole surface is built around one figure/ground rule — the
+ * page is near-black, every piece of *evidence* sits on a raised panel, and colour is spent
+ * only on meaning (confidence, severity, layer). Nothing here is decorative-only.
+ *
+ * Two palettes live side by side and must not be confused:
+ *
+ *   Confidence (--tier-*)  how much a join can be trusted. Three hues, deliberately NOT a
+ *                          heat ramp: `unresolved` is not "worse" than `inferred`, it means
+ *                          something different. It also carries a dashed border so the tier
+ *                          survives greyscale printing and colour-blind readers.
+ *
+ *   Severity (--sev-*)     how bad a finding is. This one IS a ramp, low → critical.
+ *
+ * Every foreground here clears WCAG AA (4.5:1) against the surface it is used on; the dimmest,
+ * --text-mute at 5.4:1 on --surface, is the floor and is reserved for labels, never for values.
+ */
+
+:root {
+  color-scheme: dark;
+
+  /* ---- Ground and panels -------------------------------------------------------------- */
+  --bg: #131121;
+  --bg-deep: #0e0c1b;
+  --surface: #1c1a29;
+  --surface-2: #201e2d;
+  --surface-3: #2a2838;
+  --raised: #353344;
+
+  --border: #464554;
+  --border-soft: rgba(70, 69, 84, 0.5);
+  --border-strong: #5b5a6c;
+
+  /* ---- Type --------------------------------------------------------------------------- */
+  --text: #e5dff6;
+  --text-dim: #c7c4d7;
+  --text-mute: #908fa0;
+
+  /* ---- Brand -------------------------------------------------------------------------- */
+  --accent: #8083ff;
+  --accent-soft: #c0c1ff;
+  --accent-bright: #e1e0ff;
+  --on-accent: #1000a9;
+  --accent-glow: rgba(128, 131, 255, 0.25);
+
+  /* ---- Meaning ------------------------------------------------------------------------ */
+  --tier-certain: #6bd8cb;
+  --tier-inferred: #ffc266;
+  --tier-unresolved: #dfb7ff;
+
+  --sev-critical: #ffb4ab;
+  --sev-high: #dfb7ff;
+  --sev-medium: #c0c1ff;
+  --sev-low: #6bd8cb;
+  --sev-none: #908fa0;
+
+  /* Layers of the graph. Same three colours the report and the graph view both use, so a node
+     that is teal in the topology is teal in the findings table too. */
+  --layer-code: #c0c1ff;
+  --layer-dep: #6bd8cb;
+  --layer-infra: #dfb7ff;
+
+  --ok: #6bd8cb;
+  --warn: #ffc266;
+  --danger: #ffb4ab;
+
+  /* ---- Shape and motion --------------------------------------------------------------- */
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.45);
+  --glow: 0 0 18px var(--accent-glow);
+
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* ---- Fonts -------------------------------------------------------------------------- */
+  --sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* ---- Chrome metrics (shared by the shell and by pages that offset against it) -------- */
+  --topbar-h: 60px;
+  --sidenav-w: 244px;
+}
+
+/**
+ * Reduced motion: the console animates pulses on hot nodes and a flowing dash along attack
+ * paths. Both are emphasis, never the only signal — so they can be switched off wholesale.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

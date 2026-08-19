@@ -1,62 +1,86 @@
-<div class="panel">
-  <div class="card" style="max-width: 22rem; margin: 4rem auto">
-    <h1>Create your organisation</h1>
-    <p class="lede">Registers a brand-new tenant with you as its first admin.</p>
+<app-auth-canvas>
+  <form class="form" (ngSubmit)="submit()">
+    <header class="form__head">
+      <p class="eyebrow">New organisation</p>
+      <h1>Create your organisation</h1>
+      <p class="lede">
+        Registers a brand-new tenant with you as its first admin. Joining an organisation that
+        already exists is a separate, invite-only flow.
+      </p>
+    </header>
 
     @if (demoMode) {
-      <p class="gate" role="note">Demo mode — no backend is called; this signs you in locally.</p>
+      <p class="gate" role="note">
+        <span class="ms ms--sm" aria-hidden="true">science</span>
+        <span>Demo mode — no backend is called; this signs you in locally.</span>
+      </p>
     }
 
-    <form (ngSubmit)="submit()">
-      <div class="field">
-        <label for="tenantName">Organisation name</label>
-        <input
-          id="tenantName"
-          name="tenantName"
-          type="text"
-          autocomplete="organization"
-          required
-          [ngModel]="tenantName()"
-          (ngModelChange)="tenantName.set($event)"
-        />
-      </div>
+    <div class="field">
+      <label for="tenantName">Organisation name</label>
+      <input
+        id="tenantName"
+        name="tenantName"
+        type="text"
+        autocomplete="organization"
+        placeholder="Acme Security"
+        required
+        [ngModel]="tenantName()"
+        (ngModelChange)="tenantName.set($event)"
+      />
+    </div>
 
-      <div class="field">
-        <label for="email">Email</label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          autocomplete="username"
-          required
-          [ngModel]="email()"
-          (ngModelChange)="email.set($event)"
-        />
-      </div>
+    <div class="field">
+      <label for="email">Email</label>
+      <input
+        id="email"
+        name="email"
+        type="email"
+        autocomplete="username"
+        placeholder="you@example.com"
+        required
+        [ngModel]="email()"
+        (ngModelChange)="email.set($event)"
+      />
+    </div>
 
-      <div class="field">
-        <label for="password">Password</label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          autocomplete="new-password"
-          required
-          [ngModel]="password()"
-          (ngModelChange)="password.set($event)"
-        />
-      </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input
+        id="password"
+        name="password"
+        type="password"
+        autocomplete="new-password"
+        required
+        [ngModel]="password()"
+        (ngModelChange)="password.set($event)"
+      />
+    </div>
 
-      @if (error(); as message) {
-        <p class="error" role="alert">{{ message }}</p>
+    @if (error(); as message) {
+      <p class="error" role="alert">
+        <span class="ms ms--sm" aria-hidden="true">error</span>
+        <span>{{ message }}</span>
+      </p>
+    }
+
+    <button type="submit" class="btn btn--primary btn--block btn--lg" [disabled]="submitting()">
+      @if (submitting()) {
+        <span class="spinner" aria-hidden="true"></span>
+        Creating…
+      } @else {
+        <span class="ms ms--sm" aria-hidden="true">domain_add</span>
+        Create organisation
       }
+    </button>
 
-      <div class="actions">
-        <button type="submit" class="primary" [disabled]="submitting()">
-          {{ submitting() ? 'Creating…' : 'Create organisation' }}
-        </button>
-        <a routerLink="/login">Already have an account?</a>
-      </div>
-    </form>
-  </div>
-</div>
+    <p class="form__note">
+      Everything scanned under this organisation stays inside it. The tenant is a claim in your
+      token, enforced on every read — it is never something a screen gets to choose.
+    </p>
+
+    <p class="form__foot">
+      <a routerLink="/login">Already have an account?</a>
+    </p>
+  </form>
+</app-auth-canvas>

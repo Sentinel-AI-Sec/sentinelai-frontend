@@ -1,88 +1,204 @@
-<div class="panel">
-  <h1>Projects</h1>
-  <p class="lede">
-    The repositories this tenant may submit scans for. A scan's <code>metadata.project_id</code>
-    has to match one of these.
-  </p>
+<div class="page">
+  <header class="page-head">
+    <div class="page-head__main">
+      <p class="eyebrow">
+        <span class="ms ms--sm" aria-hidden="true">folder_open</span>
+        Registered repositories
+      </p>
+      <h1>Projects</h1>
+      <p class="lede">
+        The repositories this tenant may submit scans for. A bundle is rejected unless its
+        <code>metadata.project_id</code> matches one of these exactly — so the id, not the name,
+        is what you copy out of here.
+      </p>
+    </div>
+
+    <div class="page-head__actions">
+      @if (!loading()) {
+        <span class="chip chip--mute">
+          {{ projects().length }} project{{ projects().length === 1 ? '' : 's' }}
+        </span>
+      }
+      <button type="button" class="btn btn--ghost btn--sm" (click)="reload()" [disabled]="loading()">
+        <span class="ms ms--sm" aria-hidden="true">refresh</span>
+        Refresh
+      </button>
+      @if (isAdmin) {
+        <button type="button" class="btn btn--primary btn--sm" (click)="focusCreateForm()">
+          <span class="ms ms--sm" aria-hidden="true">add</span>
+          Register repository
+        </button>
+      }
+    </div>
+  </header>
 
   @if (demoMode) {
-    <p class="gate" role="note">Demo mode — showing one reference project, not a real list.</p>
+    <p class="gate" role="note">
+      <span class="ms ms--sm" aria-hidden="true">science</span>
+      <span>Demo mode — showing one reference project, not a real list.</span>
+    </p>
   }
 
   @if (loading()) {
-    <p class="hint">Loading…</p>
+    <div class="grid" aria-busy="true">
+      @for (placeholder of [1, 2, 3]; track placeholder) {
+        <div class="skeleton skeleton--card" aria-hidden="true"></div>
+      }
+    </div>
   } @else if (loadError(); as message) {
-    <p class="error" role="alert">{{ message }}</p>
-  } @else if (projects().length === 0) {
-    <p class="hint">No projects registered yet.</p>
+    <p class="error" role="alert">
+      <span class="ms ms--sm" aria-hidden="true">error</span>
+      <span>{{ message }}</span>
+    </p>
+  } @else if (cards().length === 0) {
+    <div class="empty">
+      <span class="ms ms--xl" aria-hidden="true">folder_off</span>
+      <p>No repositories are registered for this tenant yet.</p>
+      @if (isAdmin) {
+        <button type="button" class="btn btn--primary btn--sm" (click)="focusCreateForm()">
+          Register the first one
+        </button>
+      } @else {
+        <p class="hint">An admin has to register one before any scan can be submitted.</p>
+      }
+    </div>
   } @else {
-    <div class="card">
-      <table>
-        <thead>
-          <tr>
-            <th>Repository</th>
-            <th>Default branch</th>
-            <th>Project id</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (project of projects(); track project.projectId) {
-            <tr>
-              <td>{{ project.repoUrl }}</td>
-              <td>{{ project.defaultBranch }}</td>
-              <td><code>{{ project.projectId }}</code></td>
-            </tr>
-          }
-        </tbody>
-      </table>
+    <div class="grid">
+      @for (card of cards(); track card.project.projectId) {
+        <article class="card project rise">
+          <header class="project__head">
+            <span class="project__icon ms" aria-hidden="true">source</span>
+            <div class="project__id">
+              <h2 class="project__name truncate" [title]="card.project.repoUrl">{{ card.name }}</h2>
+              <span class="project__host mono truncate">{{ card.host }}</span>
+            </div>
+          </header>
+
+          <div class="project__chips">
+            <span class="chip chip--accent" title="Branch scanned when a bundle names none">
+              <span class="ms ms--xs" aria-hidden="true">fork_right</span>
+              {{ card.project.defaultBranch }}
+            </span>
+
+            @if (card.project.githubInstallationId) {
+              <span class="chip chip--ok" title="Scans can be triggered by the GitHub App">
+                <span class="chip__dot" aria-hidden="true"></span>
+                GitHub App
+              </span>
+            } @else {
+              <span
+                class="chip chip--mute"
+                title="No GitHub App installation is linked, so bundles have to be uploaded by the Action or by hand"
+              >
+                no app install
+              </span>
+            }
+          </div>
+
+          <div class="project__key">
+            <span class="project__keylabel">project_id</span>
+            <code class="project__keyvalue truncate">{{ card.project.projectId }}</code>
+            <button
+              type="button"
+              class="icon-btn"
+              [title]="'Copy ' + card.project.projectId"
+              [attr.aria-label]="'Copy project id ' + card.project.projectId"
+              (click)="copy(card.project.projectId)"
+            >
+              <span class="ms ms--sm" aria-hidden="true">
+                {{ copiedId() === card.project.projectId ? 'check' : 'content_copy' }}
+              </span>
+            </button>
+          </div>
+
+          <div class="card__foot">
+            @if (copiedId() === card.project.projectId) {
+              <span class="project__copied">
+                <span class="ms ms--xs" aria-hidden="true">check_circle</span>
+                Copied
+              </span>
+            } @else {
+              <span class="mute">Paste this into a bundle's metadata</span>
+            }
+
+            <a class="link-btn" routerLink="/scans/new">
+              Submit a scan
+              <span class="ms ms--xs" aria-hidden="true">arrow_forward</span>
+            </a>
+          </div>
+        </article>
+      }
     </div>
   }
 
-  @if (isAdmin) {
-    <h2>Register a repository</h2>
-    <form class="card" (ngSubmit)="create()">
-      <div class="field">
-        <label for="repoUrl">Repository URL</label>
-        <input
-          id="repoUrl"
-          name="repoUrl"
-          type="url"
-          placeholder="https://github.com/org/repo"
-          required
-          [ngModel]="repoUrl()"
-          (ngModelChange)="repoUrl.set($event)"
-        />
-      </div>
+  <section class="section">
+    <div class="section__head">
+      <h2><span class="section__num">01.</span>Register a repository</h2>
+    </div>
 
-      <div class="field">
-        <label for="defaultBranch">Default branch</label>
-        <input
-          id="defaultBranch"
-          name="defaultBranch"
-          type="text"
-          placeholder="main"
-          [ngModel]="defaultBranch()"
-          (ngModelChange)="defaultBranch.set($event)"
-        />
-        <p class="field-hint">Leave blank for <code>main</code>.</p>
-      </div>
+    @if (isAdmin) {
+      <form class="card" (ngSubmit)="create()">
+        <div class="create__fields">
+          <div class="field">
+            <label for="repoUrl">Repository URL</label>
+            <input
+              #repoUrlInput
+              id="repoUrl"
+              name="repoUrl"
+              type="url"
+              placeholder="https://github.com/org/repo"
+              required
+              [ngModel]="repoUrl()"
+              (ngModelChange)="repoUrl.set($event)"
+            />
+          </div>
 
-      @if (createError(); as message) {
-        <p class="error" role="alert">{{ message }}</p>
-      }
+          <div class="field">
+            <label for="defaultBranch">Default branch</label>
+            <input
+              id="defaultBranch"
+              name="defaultBranch"
+              type="text"
+              placeholder="main"
+              [ngModel]="defaultBranch()"
+              (ngModelChange)="defaultBranch.set($event)"
+            />
+            <p class="field-hint">Leave blank for <code>main</code>.</p>
+          </div>
+        </div>
 
-      <div class="actions">
-        <button type="submit" class="primary" [disabled]="creating() || !repoUrl().trim()">
-          {{ creating() ? 'Registering…' : 'Register project' }}
-        </button>
-      </div>
-    </form>
-  } @else {
-    <p class="gate">Registering a repository requires the admin role.</p>
-  }
+        @if (createError(); as message) {
+          <p class="error" role="alert">
+            <span class="ms ms--sm" aria-hidden="true">error</span>
+            <span>{{ message }}</span>
+          </p>
+        }
 
-  <p class="hint">
-    Once a project is registered, submit a scan for it from
-    <a routerLink="/scans/new">New scan</a>.
-  </p>
+        <div class="actions">
+          <button
+            type="submit"
+            class="btn btn--primary"
+            [disabled]="creating() || !repoUrl().trim()"
+          >
+            @if (creating()) {
+              <span class="spinner" aria-hidden="true"></span>
+              Registering…
+            } @else {
+              <span class="ms ms--sm" aria-hidden="true">add</span>
+              Register project
+            }
+          </button>
+          <p class="hint">
+            Re-registering a repository is not an error — the backend answers with the existing
+            project rather than making a second one.
+          </p>
+        </div>
+      </form>
+    } @else {
+      <p class="gate">
+        <span class="ms ms--sm" aria-hidden="true">lock</span>
+        <span>Registering a repository requires the admin role.</span>
+      </p>
+    }
+  </section>
 </div>

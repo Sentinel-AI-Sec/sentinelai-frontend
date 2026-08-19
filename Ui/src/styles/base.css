@@ -1,0 +1,284 @@
+/**
+ * Element defaults and the primitives every screen leans on: page frames, headings, icons,
+ * scrollbars, focus. Anything that is a *named component* lives in components.css instead.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: rgba(128, 131, 255, 0.32);
+  color: var(--accent-bright);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+h1 {
+  font-size: 1.75rem;
+}
+
+h2 {
+  font-size: 1.15rem;
+}
+
+h3 {
+  font-size: 0.95rem;
+}
+
+p {
+  margin: 0;
+}
+
+code,
+kbd,
+samp {
+  font-family: var(--mono);
+  font-size: 0.88em;
+  color: var(--accent-soft);
+}
+
+a {
+  color: var(--accent-soft);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--border-soft);
+  margin: 1.5rem 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-soft);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ---- Icons ---------------------------------------------------------------------------- */
+
+/**
+ * Material Symbols. `font-variation-settings` is what fills an icon in — the filled cut is
+ * reserved for state that is *on* (an active nav item, a completed stage), so a glance across
+ * the chrome tells you where you are without reading a label.
+ */
+.ms {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 20px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-feature-settings: 'liga';
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  flex: none;
+}
+
+.ms--fill {
+  font-variation-settings: 'FILL' 1;
+}
+
+.ms--sm {
+  font-size: 16px;
+}
+
+.ms--xs {
+  font-size: 14px;
+}
+
+.ms--lg {
+  font-size: 24px;
+}
+
+.ms--xl {
+  font-size: 32px;
+}
+
+/* ---- Page frames ----------------------------------------------------------------------- */
+
+.page {
+  width: 100%;
+  max-width: 76rem;
+  margin: 0 auto;
+  padding: 1.75rem 1.5rem 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.page--narrow {
+  max-width: 46rem;
+}
+
+.page--wide {
+  max-width: 92rem;
+}
+
+/**
+ * `.panel` is the pre-existing name several screens were written against; it is kept as an
+ * alias of `.page` rather than renamed, so the ops screens' markup did not all have to churn
+ * in the same change that restyled them.
+ */
+.panel {
+  width: 100%;
+  max-width: 76rem;
+  margin: 0 auto;
+  padding: 1.75rem 1.5rem 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.panel--wide {
+  max-width: 92rem;
+}
+
+.page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.page-head__main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.page-head__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-mute);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.lede {
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: var(--text-dim);
+  max-width: 62ch;
+}
+
+.mono {
+  font-family: var(--mono);
+}
+
+.dim {
+  color: var(--text-dim);
+}
+
+.mute {
+  color: var(--text-mute);
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* ---- Scrollbars ------------------------------------------------------------------------ */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--border);
+  border-radius: var(--radius-pill);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text-mute);
+}
+
+/* ---- Print ----------------------------------------------------------------------------- */
+
+/**
+ * A report gets printed and pasted into a ticket. The chrome carries no evidence, so it goes;
+ * the draft-audit framing must survive, so it explicitly does not.
+ */
+@media print {
+  .topbar,
+  .sidenav,
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  .card,
+  .page {
+    box-shadow: none;
+  }
+}

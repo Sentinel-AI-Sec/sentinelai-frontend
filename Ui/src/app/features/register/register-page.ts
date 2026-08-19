@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 
 import { Auth } from '../../core/auth/auth';
+import { AuthCanvas } from '../auth/auth-canvas';
 import { environment } from '../../core/config/environment';
 
 /**
@@ -14,9 +15,9 @@ import { environment } from '../../core/config/environment';
 @Component({
   selector: 'app-register-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, AuthCanvas],
   templateUrl: './register-page.html',
-  styleUrls: ['../../shared/forms.css', './register-page.css'],
+  styleUrl: './register-page.css',
 })
 export class RegisterPage {
   private readonly auth = inject(Auth);

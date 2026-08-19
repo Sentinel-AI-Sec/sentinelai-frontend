@@ -23,6 +23,10 @@ class FakeAuth {
   hasScope() {
     return this.hasScopeValue;
   }
+  /** The screen files an accepted job into the tenant-keyed recents index on the way out. */
+  tenantId() {
+    return 'tenant-1';
+  }
 }
 
 describe('NewScanPage', () => {

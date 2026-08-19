@@ -25,40 +25,51 @@ import { Confidence } from '../../core/api/wire';
       display: inline-flex;
       align-items: center;
       gap: 0.4rem;
-      padding: 0.15rem 0.55rem;
-      border-radius: 999px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      letter-spacing: 0.02em;
+      padding: 0.15rem 0.6rem;
+      border-radius: var(--radius-pill);
+      font-family: var(--mono);
+      font-size: 0.66rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
       border: 1px solid transparent;
       white-space: nowrap;
     }
 
     .dot {
-      width: 0.45rem;
-      height: 0.45rem;
+      width: 0.4rem;
+      height: 0.4rem;
       border-radius: 50%;
       background: currentColor;
+      flex: none;
     }
 
     .badge--certain {
       color: var(--tier-certain);
-      background: color-mix(in srgb, var(--tier-certain) 12%, transparent);
-      border-color: color-mix(in srgb, var(--tier-certain) 35%, transparent);
+      background: rgba(107, 216, 203, 0.13);
+      border-color: rgba(107, 216, 203, 0.35);
     }
 
     .badge--inferred {
       color: var(--tier-inferred);
-      background: color-mix(in srgb, var(--tier-inferred) 12%, transparent);
-      border-color: color-mix(in srgb, var(--tier-inferred) 35%, transparent);
+      background: rgba(255, 194, 102, 0.13);
+      border-color: rgba(255, 194, 102, 0.35);
     }
 
+    /* Dashed, so the one tier that must never pass for a confirmed join stays distinguishable
+       in greyscale and to a colour-blind reader — hue alone is not load-bearing here. */
     .badge--unresolved {
       color: var(--tier-unresolved);
-      background: color-mix(in srgb, var(--tier-unresolved) 12%, transparent);
-      border-color: color-mix(in srgb, var(--tier-unresolved) 35%, transparent);
+      background: rgba(223, 183, 255, 0.13);
+      border-color: rgba(223, 183, 255, 0.4);
       border-style: dashed;
+    }
+
+    /* The seed hop, which arrived from nowhere. Deliberately the quietest of the four. */
+    .badge--null {
+      color: var(--text-mute);
+      background: var(--surface-2);
+      border-color: var(--border-soft);
     }
   `,
 })
