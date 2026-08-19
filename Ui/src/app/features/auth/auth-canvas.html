@@ -1,0 +1,60 @@
+<div class="auth">
+  <aside class="auth__brand grid-paper">
+    <div class="auth__glow" aria-hidden="true"></div>
+
+    <div class="auth__brandbody">
+      <div class="auth__mark">
+        <span class="mark__tile" aria-hidden="true">
+          <span class="ms ms--lg ms--fill">security</span>
+        </span>
+        <div>
+          <div class="mark__name">SentinelAI</div>
+          <div class="mark__kicker">Autonomous exploit-path reasoning</div>
+        </div>
+      </div>
+
+      <p class="auth__pitch">
+        Scanners tell you what is broken. SentinelAI tells you what those breakages
+        <em>reach</em> — joining code, dependencies and infrastructure into one graph, then
+        arguing over the paths through it.
+      </p>
+
+      <ul class="points">
+        <li class="point">
+          <span class="point__icon ms" aria-hidden="true">hub</span>
+          <span>
+            <strong>Cross-layer chains.</strong>
+            A dependency CVE, the code that calls it and the role that code assumes are three
+            findings in three tools — and one path here.
+          </span>
+        </li>
+        <li class="point">
+          <span class="point__icon ms" aria-hidden="true">forum</span>
+          <span>
+            <strong>Red, Blue and a Reporter.</strong>
+            Every candidate chain is proposed, attacked and adjudicated before it reaches you.
+            The ones Blue refutes stay visible, marked as refuted.
+          </span>
+        </li>
+        <li class="point">
+          <span class="point__icon ms" aria-hidden="true">verified</span>
+          <span>
+            <strong>Confidence on every join.</strong>
+            A link confirmed against real configuration is labelled differently from one matched
+            by naming convention. A guess is never shown as a fact.
+          </span>
+        </li>
+      </ul>
+    </div>
+
+    <!-- The draft-audit framing is not repeated here: the shell renders it in the standing
+         footer on every route, this one included, and saying it twice on one screen reads as
+         boilerplate rather than as the point. -->
+  </aside>
+
+  <div class="auth__form">
+    <div class="auth__formInner">
+      <ng-content />
+    </div>
+  </div>
+</div>

@@ -1,0 +1,93 @@
+/* Findings filter bar, severity tally and the table's own column behaviour. */
+
+.filters {
+  gap: 0.85rem;
+}
+
+.filters__row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.filters__label {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+  min-width: 9rem;
+}
+
+.tally__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.tally__row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.tally__cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: var(--radius);
+  background: var(--bg-deep);
+  border: 1px solid var(--border-soft);
+}
+
+.tally__count {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* The message is the column that earns the width; everything else stays on one line. */
+.cell-message {
+  min-width: 22rem;
+  line-height: 1.55;
+  color: var(--text-dim);
+}
+
+.cell-message .chip {
+  margin-left: 0.4rem;
+  vertical-align: middle;
+}
+
+.cell-refs {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/*
+ * Node keys are colon-delimited and long. Breaking them anywhere they happen to run out of
+ * room split `pkg:newtonsoft.json:12.0.1` across three lines mid-word, which is unreadable and
+ * pushed every row to three times its height. One line, elided, with the whole key on the
+ * link's title — the graph view is one click away for anyone who needs to see all of it.
+ */
+.cell-node code {
+  display: block;
+  max-width: 15rem;
+  font-size: 0.74rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cell-node:hover code {
+  color: var(--accent-bright);
+}
+
+.actions--center {
+  justify-content: center;
+}

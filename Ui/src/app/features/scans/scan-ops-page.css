@@ -1,0 +1,90 @@
+/* Scan ops: the status hero and the danger zone. The stepper itself is global vocabulary. */
+
+.status {
+  gap: 1.1rem;
+}
+
+.status__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.status__id {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+  min-width: 0;
+}
+
+.status__icon {
+  color: var(--accent-soft);
+}
+
+.status__chips {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.35rem;
+}
+
+.status__job {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  word-break: break-all;
+}
+
+.status__facts {
+  display: flex;
+  gap: 1.75rem;
+  flex-wrap: wrap;
+  margin: 0;
+}
+
+.status__facts > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.status__facts dt {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+}
+
+.status__facts dd {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+/*
+ * The purge gate deliberately does NOT use the shared `.gate` class. `.gate` counts the
+ * scope-gated stage runners, and a role gate joining that count would make "how many things is
+ * this token missing" answer wrong — including in the test that pins it.
+ */
+.gate-admin {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  padding: 0.75rem 0.95rem;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-left: 3px solid var(--border-strong);
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--text-dim);
+}
+
+.danger-zone {
+  border-color: rgba(255, 180, 171, 0.35);
+  background: linear-gradient(135deg, rgba(255, 180, 171, 0.06), var(--surface));
+}

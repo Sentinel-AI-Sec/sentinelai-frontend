@@ -1,0 +1,118 @@
+/* Layout local to the console landing screen; everything else comes from the global system. */
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+/* Input plus its action on one line, with the input taking whatever is left. */
+.openrow {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.openrow input {
+  flex: 1 1 14rem;
+  min-width: 0;
+  font-size: 0.85rem;
+}
+
+.scopes {
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: flex-start;
+}
+
+.scopes code {
+  padding: 0.05rem 0.35rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-deep);
+  border: 1px solid var(--border-soft);
+  font-size: 0.66rem;
+  color: var(--text-dim);
+}
+
+/* ---- Recents ---------------------------------------------------------------------------- */
+
+.recents,
+.projects {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.recents__row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.recents__link {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  color: var(--text-dim);
+  text-decoration: none;
+}
+
+.recents__link:hover {
+  background: var(--surface-2);
+  border-color: var(--border-soft);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.recents__icon {
+  color: var(--tier-certain);
+}
+
+.recents__icon--report {
+  color: var(--tier-unresolved);
+}
+
+.recents__body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.recents__label {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: inherit;
+}
+
+.recents__meta {
+  font-size: 0.66rem;
+  color: var(--text-mute);
+}
+
+/* ---- Project mini-list ------------------------------------------------------------------ */
+
+.projects__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+}
+
+.projects__name {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}

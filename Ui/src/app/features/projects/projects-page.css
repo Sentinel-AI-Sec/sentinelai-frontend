@@ -1,0 +1,108 @@
+/* Project card internals and the create form's field pairing. */
+
+.skeleton--card {
+  height: 11.5rem;
+}
+
+.project {
+  gap: 0.75rem;
+}
+
+.project__head {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.project__icon {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(128, 131, 255, 0.15);
+  border: 1px solid rgba(128, 131, 255, 0.35);
+  color: var(--accent-soft);
+  font-size: 18px;
+}
+
+.project__id {
+  min-width: 0;
+}
+
+.project__name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.project__host {
+  display: block;
+  font-size: 0.68rem;
+  color: var(--text-mute);
+}
+
+.project__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+/*
+ * The id row is styled as a field rather than as body copy: it is the one value on this card
+ * that gets taken somewhere else, so it reads as something to pick up, not something to skim.
+ */
+.project__key {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.4rem 0.4rem 0.7rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-deep);
+  border: 1px solid var(--border-soft);
+  min-width: 0;
+}
+
+.project__keylabel {
+  font-family: var(--mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+  flex: none;
+}
+
+.project__keyvalue {
+  flex: 1;
+  font-size: 0.72rem;
+  color: var(--text-dim);
+}
+
+.project__copied {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--tier-certain);
+  font-weight: 600;
+}
+
+.create__fields {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 46rem) {
+  .create__fields {
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+/* The card is narrow, and "Submit a scan →" wrapping onto two lines reads as two controls. */
+.card__foot .link-btn {
+  white-space: nowrap;
+}

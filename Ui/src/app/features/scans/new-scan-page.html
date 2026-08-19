@@ -1,0 +1,285 @@
+<div class="page">
+  <div class="page-head">
+    <div class="page-head__main">
+      <p class="eyebrow">
+        <span class="ms ms--xs" aria-hidden="true">radar</span>
+        Scans
+        @if (demoMode) {
+          <span class="chip chip--warn">
+            <span class="chip__dot" aria-hidden="true"></span>
+            demo — nothing is uploaded
+          </span>
+        }
+      </p>
+      <h1>Submit a scan</h1>
+      <p class="lede">
+        Uploads a bundle the way the GitHub Action does — a <code>metadata.json</code> part plus
+        the <code>.tar.gz</code> tarball. The project id has to match one already registered on
+        <a routerLink="/projects">Projects</a>.
+      </p>
+    </div>
+  </div>
+
+  @if (!canWrite) {
+    <p class="gate">
+      <span class="ms ms--sm" aria-hidden="true">lock</span>
+      Submitting a scan requires the <code>scan:write</code> scope. Every human role except
+      <code>viewer</code> is issued it — ask an admin to check the token.
+    </p>
+  } @else if (submitted(); as job) {
+    <div class="card card--accent accepted">
+      <div class="accepted__head">
+        <span class="ms ms--xl accepted__icon" aria-hidden="true">task_alt</span>
+        <div>
+          <h2>Bundle accepted</h2>
+          <p class="hint">
+            The job is queued. Nothing has been analysed yet — drive it through the stages from
+            pipeline ops.
+          </p>
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="field__label">Scan job id</span>
+        <code class="accepted__id">{{ job.scanJobId }}</code>
+      </div>
+
+      <div class="accepted__facts">
+        <div>
+          <span class="field__label">Corpus version</span>
+          <code>{{ job.corpusVersion }}</code>
+        </div>
+        <div>
+          <span class="field__label">Bundle sha256</span>
+          <code class="truncate">{{ job.bundleSha256 }}</code>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="btn btn--primary" (click)="openOps()">
+          <span class="ms ms--sm" aria-hidden="true">conversion_path</span>
+          Open pipeline ops
+        </button>
+        <a class="btn btn--ghost" routerLink="/projects">Back to projects</a>
+      </div>
+    </div>
+  } @else {
+    <form class="split split--main" (ngSubmit)="submit()">
+      <div class="form-column">
+        <section class="card">
+          <div class="card__head">
+            <h2 class="card__title">
+              <span class="ms ms--sm" aria-hidden="true">target</span>
+              Target
+            </h2>
+            <span class="card__sub">what is being scanned</span>
+          </div>
+
+          <div class="field">
+            <label for="projectId">Project id</label>
+            <input
+              id="projectId"
+              name="projectId"
+              type="text"
+              required
+              placeholder="the id from Projects"
+              [ngModel]="projectId()"
+              (ngModelChange)="projectId.set($event)"
+            />
+            <p class="field-hint">Must already be registered for this tenant.</p>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="prRef">PR ref</label>
+              <input
+                id="prRef"
+                name="prRef"
+                type="text"
+                placeholder="refs/pull/42/merge"
+                [ngModel]="prRef()"
+                (ngModelChange)="prRef.set($event)"
+              />
+            </div>
+
+            <div class="field">
+              <label for="commitSha">Commit SHA</label>
+              <input
+                id="commitSha"
+                name="commitSha"
+                type="text"
+                placeholder="8b3d12f…"
+                [ngModel]="commitSha()"
+                (ngModelChange)="commitSha.set($event)"
+              />
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card__head">
+            <h2 class="card__title">
+              <span class="ms ms--sm" aria-hidden="true">tune</span>
+              Analysis
+            </h2>
+            <span class="card__sub">how the debate is run and what is kept</span>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="modelTierHint">Model tier hint</label>
+              <select
+                id="modelTierHint"
+                name="modelTierHint"
+                [ngModel]="modelTierHint()"
+                (ngModelChange)="modelTierHint.set($event)"
+              >
+                <option value="auto">auto</option>
+                <option value="economy">economy</option>
+                <option value="premium">premium</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="runnerSecretScan">Runner secret scan</label>
+              <select
+                id="runnerSecretScan"
+                name="runnerSecretScan"
+                [ngModel]="runnerSecretScan()"
+                (ngModelChange)="runnerSecretScan.set($event)"
+              >
+                <option value="skipped">skipped</option>
+                <option value="passed">passed</option>
+                <option value="failed">failed</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field checkbox">
+            <input
+              id="retainReport"
+              name="retainReport"
+              type="checkbox"
+              [ngModel]="retainReport()"
+              (ngModelChange)="retainReport.set($event)"
+            />
+            <label for="retainReport">Retain the report after the audit runs</label>
+          </div>
+          <p class="field-hint">
+            Unretained runs still produce an audit — there is just no report id afterwards to
+            open.
+          </p>
+        </section>
+
+        <section class="card">
+          <div class="card__head">
+            <h2 class="card__title">
+              <span class="ms ms--sm" aria-hidden="true">fingerprint</span>
+              Provenance
+            </h2>
+            <span class="card__sub">stored verbatim, never interpreted</span>
+          </div>
+
+          <div class="field">
+            <label for="scannerVersions">Scanner versions (JSON)</label>
+            <textarea
+              id="scannerVersions"
+              name="scannerVersions"
+              rows="3"
+              [ngModel]="scannerVersionsJson()"
+              (ngModelChange)="scannerVersionsJson.set($event)"
+            ></textarea>
+            @if (scannerVersionsValid()) {
+              <p class="field-hint">
+                An object, sent as real JSON — e.g. <code>{{ '{"osv-scanner":"2.3.8"}' }}</code>.
+              </p>
+            } @else {
+              <p class="field-hint field-hint--bad">
+                <span class="ms ms--xs" aria-hidden="true">warning</span>
+                Not valid JSON yet.
+              </p>
+            }
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card__head">
+            <h2 class="card__title">
+              <span class="ms ms--sm" aria-hidden="true">folder_zip</span>
+              Bundle
+            </h2>
+            <span class="card__sub">.tar.gz, max 64 MB</span>
+          </div>
+
+          <label
+            class="dropzone"
+            [class.dropzone--active]="dragging()"
+            [class.dropzone--filled]="!!bundleFile()"
+            (dragover)="onDragOver($event)"
+            (dragleave)="onDragLeave()"
+            (drop)="onDrop($event)"
+          >
+            <input
+              id="bundle"
+              name="bundle"
+              type="file"
+              accept=".tar.gz,.tgz"
+              class="dropzone__input"
+              (change)="onFileSelected($event)"
+            />
+
+            @if (bundleFile(); as file) {
+              <span class="ms ms--xl dropzone__icon" aria-hidden="true">inventory_2</span>
+              <span class="dropzone__name mono">{{ file.name }}</span>
+              <span class="dropzone__meta">{{ bundleLabel() }} · click to replace</span>
+            } @else {
+              <span class="ms ms--xl dropzone__icon" aria-hidden="true">cloud_upload</span>
+              <span class="dropzone__name">Drop the tarball here</span>
+              <span class="dropzone__meta">or click to choose a file</span>
+            }
+          </label>
+        </section>
+
+        @if (error(); as message) {
+          <p class="error" role="alert">
+            <span class="ms ms--sm" aria-hidden="true">error</span>
+            {{ message }}
+          </p>
+        }
+
+        <div class="actions">
+          <button
+            type="submit"
+            class="btn btn--primary btn--lg"
+            [disabled]="submitting() || !projectId().trim()"
+          >
+            @if (submitting()) {
+              <span class="spinner" aria-hidden="true"></span>
+            } @else {
+              <span class="ms ms--sm" aria-hidden="true">upload</span>
+            }
+            {{ submitting() ? 'Submitting…' : 'Submit bundle' }}
+          </button>
+        </div>
+      </div>
+
+      <aside class="preview card card--sunken">
+        <div class="card__head">
+          <h2 class="card__title">
+            <span class="ms ms--sm" aria-hidden="true">data_object</span>
+            metadata.json
+          </h2>
+          <span class="card__sub">the part that will be sent</span>
+        </div>
+
+        <pre class="wire wire--tight">{{ metadataPreview() }}</pre>
+
+        <p class="hint">
+          Keys are snake_case because that is what the backend reads, and
+          <code>scanner_versions</code> is an object rather than a string. A 400 here is almost
+          always one of those two.
+        </p>
+      </aside>
+    </form>
+  }
+</div>

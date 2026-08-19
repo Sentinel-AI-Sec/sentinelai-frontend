@@ -1,0 +1,311 @@
+<div class="page page--wide">
+  <header class="page-head">
+    <div class="page-head__main">
+      <p class="eyebrow">
+        <span class="ms ms--sm" aria-hidden="true">forum</span>
+        Red · Blue · Reporter
+      </p>
+      <h1>Debate playground</h1>
+      <p class="lede">
+        Runs the adjudication stage on its own. Paste a resource graph from a scan's "run graph
+        stage" result, or leave both fields blank to argue over the built-in AID-01 fixture.
+      </p>
+    </div>
+  </header>
+
+  @if (demoMode) {
+    <p class="gate" role="note">
+      <span class="ms ms--sm" aria-hidden="true">science</span>
+      <span>Demo mode — a canned transcript is shown, no model is called.</span>
+    </p>
+  }
+
+  <div class="split split--sidebar">
+    <form class="card runner" (ngSubmit)="run()">
+      <div class="card__head">
+        <h2 class="card__title">
+          <span class="ms ms--sm" aria-hidden="true">play_circle</span>
+          Run a debate
+        </h2>
+      </div>
+
+      <div class="field">
+        <label for="scanJobId">Scan job id (optional)</label>
+        <input
+          id="scanJobId"
+          name="scanJobId"
+          type="text"
+          placeholder="api-scan"
+          [ngModel]="scanJobId()"
+          (ngModelChange)="scanJobId.set($event)"
+        />
+      </div>
+
+      <div class="field">
+        <label for="resourceGraph">Resource graph (optional)</label>
+        <textarea
+          id="resourceGraph"
+          name="resourceGraph"
+          rows="8"
+          placeholder="Leave blank to use the built-in AID-01 fixture"
+          [ngModel]="resourceGraph()"
+          (ngModelChange)="resourceGraph.set($event)"
+        ></textarea>
+      </div>
+
+      @if (error(); as message) {
+        <p class="error" role="alert">
+          <span class="ms ms--sm" aria-hidden="true">error</span>
+          <span>{{ message }}</span>
+        </p>
+      }
+
+      <div class="actions">
+        <button type="submit" class="btn btn--primary" [disabled]="running()">
+          @if (running()) {
+            <span class="spinner" aria-hidden="true"></span>
+            Running…
+          } @else {
+            <span class="ms ms--sm" aria-hidden="true">bolt</span>
+            Run debate
+          }
+        </button>
+        <button type="button" class="btn btn--ghost" [disabled]="running()" (click)="runDemo()">
+          <span class="ms ms--sm" aria-hidden="true">science</span>
+          AID-01 fixture
+        </button>
+      </div>
+
+      @if (running()) {
+        <p class="waiting" role="status">
+          <span class="ms ms--sm" aria-hidden="true">hourglass_top</span>
+          <span>
+            This request stays open until the debate finishes — there is no progress to poll,
+            because the model calls run one after another inside it. Leave the tab open.
+          </span>
+        </p>
+      } @else if (!demoMode) {
+        <p class="hint">
+          <strong>A live run is 4–7 sequential model calls</strong> — 90–140 seconds measured
+          against NIM. Nothing is queued: the HTTP request is held open for the whole run.
+        </p>
+      }
+    </form>
+
+    @if (result(); as r) {
+      <div class="results rise">
+        <div class="grid grid--kpi">
+          <div class="kpi">
+            <div class="kpi__head">
+              <span class="kpi__label">Outcome</span>
+              <span class="ms ms--sm" aria-hidden="true">flag</span>
+            </div>
+            <span class="kpi__outcome">{{ r.outcome }}</span>
+            <div class="kpi__foot">
+              <span>scan {{ r.scanJobId }}</span>
+            </div>
+          </div>
+
+          <div class="kpi">
+            <div class="kpi__head">
+              <span class="kpi__label">Weakest join</span>
+              <span class="ms ms--sm" aria-hidden="true">link</span>
+            </div>
+            <span [class]="tierChip(r.weakestJoin) + ' kpi__tier'">
+              <span class="chip__dot" aria-hidden="true"></span>
+              {{ r.weakestJoin }}
+            </span>
+            <div class="kpi__foot">
+              <span>a chain is only as strong as this</span>
+            </div>
+          </div>
+
+          <div class="kpi">
+            <div class="kpi__head">
+              <span class="kpi__label">Rounds / turns</span>
+              <span class="ms ms--sm" aria-hidden="true">repeat</span>
+            </div>
+            <div class="kpi__row">
+              <span class="kpi__value num">{{ r.rounds }}</span>
+              <span class="kpi__unit">/ {{ r.turns }} turns</span>
+            </div>
+            <div class="kpi__foot">
+              @if (r.terminatedByTurnCap) {
+                <span class="chip chip--warn">
+                  <span class="ms ms--xs" aria-hidden="true">block</span>
+                  stopped at the turn cap
+                </span>
+              } @else {
+                <span>argued to a conclusion</span>
+              }
+            </div>
+          </div>
+
+          <div class="kpi">
+            <div class="kpi__head">
+              <span class="kpi__label">Cost</span>
+              <span class="ms ms--sm" aria-hidden="true">payments</span>
+            </div>
+            <div class="kpi__row">
+              <span class="kpi__value kpi__value--accent num">{{ r.cost.total }}</span>
+              <span class="kpi__unit">{{ r.cost.currency }}</span>
+            </div>
+            <div class="kpi__foot kpi__foot--wrap">
+              <span>{{ r.cost.modelCalls }} calls · {{ r.cost.totalTokens }} tokens</span>
+              @if (!r.cost.rated) {
+                <span class="chip chip--warn" title="At least one call had no known price">
+                  unrated
+                </span>
+              }
+              @if (!r.cost.measured) {
+                <span class="chip chip--mute" title="The provider reported no token usage">
+                  no usage reported
+                </span>
+              }
+            </div>
+          </div>
+        </div>
+
+        @if (hasIntegrityWarnings()) {
+          <section class="card integrity" role="alert">
+            <div class="card__head">
+              <h2 class="card__title integrity__title">
+                <span class="ms ms--sm" aria-hidden="true">gpp_maybe</span>
+                Integrity warnings
+              </h2>
+              <span class="chip chip--danger">SEC-50</span>
+            </div>
+
+            <p class="integrity__lede">
+              The Reporter's own chain was checked back against the graph it was given. These are
+              the places the two disagree — treat the conclusion above as unsafe until each one is
+              explained.
+            </p>
+
+            @if (r.edgeIntegrityWarnings.length > 0) {
+              <div class="integrity__group">
+                <h3 class="integrity__grouptitle">
+                  Hops with no matching graph edge
+                  <span class="chip chip--danger">{{ r.edgeIntegrityWarnings.length }}</span>
+                </h3>
+                <ul class="integrity__list">
+                  @for (warning of r.edgeIntegrityWarnings; track warning) {
+                    <li>{{ warning }}</li>
+                  }
+                </ul>
+              </div>
+            }
+
+            @if (r.abandonedReasoningWarnings.length > 0) {
+              <div class="integrity__group">
+                <h3 class="integrity__grouptitle">
+                  Raised in the debate, dropped from the chain
+                  <span class="chip chip--warn">{{ r.abandonedReasoningWarnings.length }}</span>
+                </h3>
+                <ul class="integrity__list">
+                  @for (warning of r.abandonedReasoningWarnings; track warning) {
+                    <li>{{ warning }}</li>
+                  }
+                </ul>
+              </div>
+            }
+          </section>
+        }
+
+        <section class="card">
+          <div class="card__head">
+            <h2 class="card__title">
+              <span class="ms ms--sm" aria-hidden="true">summarize</span>
+              What the debate concluded
+            </h2>
+          </div>
+          <p class="summary">{{ r.summary }}</p>
+          <p class="hint">{{ r.disclaimer }}</p>
+        </section>
+
+        <section class="section">
+          <div class="section__head">
+            <h2><span class="section__num">01.</span>Transcript</h2>
+            <span class="mute mono">{{ r.transcript.length }} turns</span>
+          </div>
+
+          <ol class="thread">
+            @for (turn of r.transcript; track $index) {
+              @let who = speaker(turn.role);
+              <li class="turn" [attr.data-speaker]="who">
+                <span class="turn__avatar" aria-hidden="true">{{ initial(turn.role) }}</span>
+
+                <div class="turn__body">
+                  <div class="turn__meta">
+                    <strong class="turn__role">{{ turn.role }}</strong>
+                    <span class="chip chip--mute">round {{ turn.round }}</span>
+                    <span [class]="tierChip(turn.confidence)">
+                      <span class="chip__dot" aria-hidden="true"></span>
+                      {{ turn.confidence }}
+                    </span>
+                    <span class="turn__tokens">{{ turn.tier }} tier · {{ turn.tokens }} tokens</span>
+                  </div>
+
+                  <p class="turn__content">{{ turn.content }}</p>
+                </div>
+              </li>
+            }
+          </ol>
+        </section>
+
+        @if (r.cost.byTier.length > 0) {
+          <section class="card">
+            <div class="card__head">
+              <h2 class="card__title">
+                <span class="ms ms--sm" aria-hidden="true">receipt_long</span>
+                Cost by tier
+              </h2>
+              <span class="card__sub">
+                routing splits cheap turns from the ones worth a frontier model
+              </span>
+            </div>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tier</th>
+                    <th>Calls</th>
+                    <th>Input</th>
+                    <th>Output</th>
+                    <th>Cost</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (tier of r.cost.byTier; track tier.tier) {
+                    <tr>
+                      <td><span class="chip chip--accent">{{ tier.tier }}</span></td>
+                      <td class="num">{{ tier.calls }}</td>
+                      <td class="num">{{ tier.inputTokens }}</td>
+                      <td class="num">{{ tier.outputTokens }}</td>
+                      <td class="num">
+                        {{ tier.cost }}
+                        @if (!tier.rated) {
+                          <span class="chip chip--warn">unrated</span>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </section>
+        }
+      </div>
+    } @else if (!running()) {
+      <div class="empty">
+        <span class="ms ms--xl" aria-hidden="true">forum</span>
+        <p>No debate has been run in this tab yet.</p>
+        <p class="hint">
+          Run one against the AID-01 fixture to see the shape of a transcript without waiting on
+          a real scan.
+        </p>
+      </div>
+    }
+  </div>
+</div>

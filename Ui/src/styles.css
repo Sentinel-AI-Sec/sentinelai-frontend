@@ -1,1 +1,13 @@
-/* You can add global styles to this file, and also import other style files */
+/**
+ * Global stylesheet. Split three ways so the pieces stay findable:
+ *
+ *   styles/tokens.css      the palette, type, shape and motion variables — what things mean
+ *   styles/base.css        element defaults, page frames, icons, scrollbars, print
+ *   styles/components.css  the shared component vocabulary (cards, chips, buttons, tables…)
+ *
+ * Component stylesheets under src/app hold only what is local to one screen.
+ */
+
+@import "./styles/tokens.css";
+@import "./styles/base.css";
+@import "./styles/components.css";

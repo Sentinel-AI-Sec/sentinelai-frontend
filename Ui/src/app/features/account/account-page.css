@@ -1,0 +1,107 @@
+/* The identity card and the danger zone's separation from the rest of the page. */
+
+.identity {
+  gap: 1.15rem;
+}
+
+.identity__head {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.identity__avatar {
+  flex: none;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--accent), var(--tier-unresolved));
+  color: var(--on-accent);
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.identity__who {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.identity__label {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+}
+
+.identity__tenant {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.identity__tenant code {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.identity__scopes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-soft);
+}
+
+.identity__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.identity__note {
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border-soft);
+}
+
+/* ---- Danger zone ---------------------------------------------------------------------------- */
+
+/*
+ * Deliberately set apart rather than styled as one more card in the stack. The action inside it
+ * is the only irreversible thing in the whole console, and adjacency to ordinary settings is
+ * what makes a destructive control get clicked by momentum.
+ */
+.danger__heading {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--sev-critical);
+}
+
+.danger {
+  border-color: rgba(255, 180, 171, 0.45);
+  background: linear-gradient(135deg, rgba(255, 180, 171, 0.07), var(--surface));
+}
+
+.danger__title {
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.danger__body {
+  font-size: 0.84rem;
+  line-height: 1.7;
+  color: var(--text-dim);
+}
+
+.danger__body strong {
+  color: var(--sev-critical);
+}

@@ -1,0 +1,308 @@
+<div class="page page--wide">
+  <div class="page-head">
+    <div class="page-head__main">
+      <p class="eyebrow">
+        <span class="ms ms--xs" aria-hidden="true">hub</span>
+        Scan <code>{{ id() }}</code>
+      </p>
+      <h1>Resource graph</h1>
+      <p class="lede">
+        Every node the normalize and graph stages found, and every join between them. Colour on a
+        join is its confidence tier — what the join rests on, not how bad it is.
+      </p>
+    </div>
+
+    <div class="page-head__actions">
+      <a class="btn btn--ghost btn--sm" [routerLink]="['/scans', id(), 'findings']">
+        <span class="ms ms--sm" aria-hidden="true">bug_report</span>
+        Findings
+      </a>
+      <a class="btn btn--ghost btn--sm" [routerLink]="['/scans', id(), 'ops']">
+        <span class="ms ms--sm" aria-hidden="true">conversion_path</span>
+        Pipeline ops
+      </a>
+    </div>
+  </div>
+
+  <app-scan-tabs [scanJobId]="id()" />
+
+  @if (loading()) {
+    <div class="state" role="status">
+      <span class="spinner" aria-hidden="true"></span>
+      Loading the resource graph…
+    </div>
+  } @else if (error(); as message) {
+    <div class="card">
+      <p class="error" role="alert">
+        <span class="ms ms--sm" aria-hidden="true">error</span>
+        {{ message }}
+      </p>
+      <div class="actions">
+        <button type="button" class="btn btn--ghost btn--sm" (click)="retry()">Try again</button>
+      </div>
+    </div>
+  } @else if (layout().nodes.length === 0) {
+    <div class="empty">
+      <span class="ms ms--xl" aria-hidden="true">graph_3</span>
+      <p>
+        This scan has no graph yet. Nodes and edges are written by the graph stage — until it has
+        run, the endpoint answers with an empty graph rather than an error.
+      </p>
+      <a class="btn btn--primary btn--sm" [routerLink]="['/scans', id(), 'ops']">
+        <span class="ms ms--sm" aria-hidden="true">play_arrow</span>
+        Run the graph stage
+      </a>
+    </div>
+  } @else {
+    <div class="controls card">
+      <div class="controls__row">
+        <div class="controls__counts">
+          <span class="chip chip--accent">
+            <span class="ms ms--xs" aria-hidden="true">scatter_plot</span>
+            {{ layout().nodes.length }} nodes
+          </span>
+          <span class="chip">
+            <span class="ms ms--xs" aria-hidden="true">arrow_range</span>
+            {{ layout().edges.length }} edges
+          </span>
+          @if (hotCount() > 0) {
+            <span class="chip chip--danger" title="Reachable from an entry point the debate cared about">
+              <span class="chip__dot" aria-hidden="true"></span>
+              {{ hotCount() }} hot
+            </span>
+          }
+        </div>
+
+        <div class="seg" role="group" aria-label="Filter by layer">
+          <button
+            type="button"
+            class="seg__opt"
+            [attr.aria-pressed]="layerFilter() === 'all'"
+            (click)="setLayerFilter('all')"
+          >
+            All layers
+          </button>
+          @for (layer of layers; track layer) {
+            <button
+              type="button"
+              class="seg__opt"
+              [attr.aria-pressed]="layerFilter() === layer"
+              (click)="setLayerFilter(layer)"
+            >
+              {{ layerLabel[layer] }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="legend">
+        <span class="legend__group">
+          <span class="legend__title">Join confidence</span>
+          <span class="legend__item"><i class="swatch swatch--certain"></i>certain</span>
+          <span class="legend__item"><i class="swatch swatch--inferred"></i>inferred</span>
+          <span class="legend__item"><i class="swatch swatch--unresolved"></i>unresolved</span>
+        </span>
+        <span class="legend__group">
+          <span class="legend__title">Layer</span>
+          <span class="legend__item"><i class="swatch swatch--dep"></i>dependency</span>
+          <span class="legend__item"><i class="swatch swatch--code"></i>code</span>
+          <span class="legend__item"><i class="swatch swatch--infra"></i>infrastructure</span>
+        </span>
+      </div>
+    </div>
+
+    <div class="split split--main">
+      <div class="canvas grid-paper">
+        <svg
+          class="canvas__svg"
+          [attr.viewBox]="'0 0 ' + layout().width + ' ' + layout().height"
+          preserveAspectRatio="xMidYMid meet"
+          role="img"
+          [attr.aria-label]="'Resource graph: ' + summary()"
+        >
+          <defs>
+            <!-- One marker per tier: SVG markers do not inherit the path stroke reliably
+                 across browsers, so the colour is baked into each arrowhead instead. -->
+            <marker id="arrow-certain" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L6,3 L0,6 z" class="arrow arrow--certain" />
+            </marker>
+            <marker id="arrow-inferred" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L6,3 L0,6 z" class="arrow arrow--inferred" />
+            </marker>
+            <marker id="arrow-unresolved" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L6,3 L0,6 z" class="arrow arrow--unresolved" />
+            </marker>
+          </defs>
+
+          @for (placed of layout().edges; track $index) {
+            <path
+              [attr.d]="placed.path"
+              class="edge"
+              [class]="'edge--' + placed.edge.confidence"
+              [class.edge--dim]="edgeDimmed(placed)"
+              [class.flowline]="placed.edge.oriented_attack_dir"
+              [attr.marker-end]="
+                placed.edge.oriented_attack_dir ? 'url(#arrow-' + placed.edge.confidence + ')' : null
+              "
+            >
+              <title>
+                {{ placed.edge.from }} → {{ placed.edge.to }} ({{ placed.edge.relation }}, {{
+                  placed.edge.seam
+                }}, {{ placed.edge.confidence }})
+              </title>
+            </path>
+          }
+
+          @for (placed of layout().nodes; track placed.node.node_key) {
+            <g
+              class="node"
+              [class]="'node--' + placed.node.layer"
+              [class.node--hot]="placed.node.is_hot"
+              [class.node--dim]="dimmed(placed.node.layer)"
+              [class.node--selected]="selectedKey() === placed.node.node_key"
+              [attr.transform]="'translate(' + placed.x + ',' + placed.y + ')'"
+              tabindex="0"
+              role="button"
+              [attr.aria-pressed]="selectedKey() === placed.node.node_key"
+              [attr.aria-label]="
+                placed.node.node_key +
+                ' — ' +
+                placed.node.type +
+                ', ' +
+                layerLabel[placed.node.layer] +
+                (placed.node.is_hot ? ', hot' : '')
+              "
+              (click)="select(placed.node.node_key)"
+              (keydown.enter)="select(placed.node.node_key)"
+              (keydown.space)="select(placed.node.node_key)"
+            >
+              <title>{{ placed.node.node_key }}</title>
+
+              @if (placed.node.is_hot) {
+                <circle class="node__halo" [attr.r]="nodeRadius + 6" />
+              }
+
+              <circle class="node__ring" [attr.r]="nodeRadius" />
+              <text class="node__type" y="4">{{ abbrev(placed.node.type) }}</text>
+
+              @if (placed.findings.length > 0) {
+                <g [attr.transform]="'translate(' + (nodeRadius - 4) + ',' + -(nodeRadius - 4) + ')'">
+                  <circle class="node__count" r="9" />
+                  <text class="node__count-text" y="3">{{ placed.findings.length }}</text>
+                </g>
+              }
+
+              <text class="node__key" [attr.y]="nodeRadius + 20">
+                {{ shortKey(placed.node.node_key) }}
+              </text>
+            </g>
+          }
+        </svg>
+      </div>
+
+      <aside class="inspector card">
+        @if (selected(); as placed) {
+          <div class="card__head">
+            <div class="inspector__id">
+              <span class="ms ms--lg" aria-hidden="true">{{ icon(placed.node.type) }}</span>
+              <div>
+                <div class="card__sub">{{ layerLabel[placed.node.layer] }} · {{ placed.node.type }}</div>
+                <code class="inspector__key">{{ placed.node.node_key }}</code>
+              </div>
+            </div>
+            <button type="button" class="icon-btn" title="Copy node key" (click)="copyKey()">
+              <span class="ms ms--sm" aria-hidden="true">content_copy</span>
+            </button>
+          </div>
+
+          @if (placed.node.is_hot) {
+            <p class="gate inspector__hot">
+              <span class="ms ms--sm" aria-hidden="true">local_fire_department</span>
+              Marked hot: the graph stage flagged this node as one an attacker could reach.
+            </p>
+          }
+
+          <div class="section">
+            <h2 class="card__title">Evidence ({{ placed.findings.length }})</h2>
+            @if (placed.findings.length === 0) {
+              <p class="hint">
+                No scanner reported anything on this node. It is on the graph because of how it
+                connects, not because something was found on it.
+              </p>
+            } @else {
+              @for (finding of placed.findings; track finding.id) {
+                <div class="evidence">
+                  <div class="evidence__head">
+                    <span class="sev" [class]="'sev--' + finding.severity">
+                      {{ severityLabel(finding.severity) }}
+                    </span>
+                    <span class="chip chip--mute">{{ finding.source_tool }}</span>
+                    @if (finding.cwe_id) {
+                      <span class="chip">{{ finding.cwe_id }}</span>
+                    }
+                    @if (finding.cve_id) {
+                      <span class="chip">{{ finding.cve_id }}</span>
+                    }
+                  </div>
+                  <p class="evidence__message">{{ finding.message }}</p>
+                </div>
+              }
+            }
+          </div>
+
+          <div class="section">
+            <h2 class="card__title">Joins</h2>
+
+            @if (inbound().length === 0 && outbound().length === 0) {
+              <p class="hint">This node has no edges in this graph.</p>
+            }
+
+            @for (placedEdge of inbound(); track $index) {
+              <div class="join">
+                <span class="join__dir">
+                  <span class="ms ms--xs" aria-hidden="true">south_west</span>
+                  from
+                </span>
+                <code class="truncate">{{ placedEdge.edge.from }}</code>
+                <span
+                  class="chip"
+                  [class]="'chip--' + placedEdge.edge.confidence"
+                  [title]="confidenceHint(placedEdge.edge.confidence)"
+                >
+                  {{ placedEdge.edge.confidence }}
+                </span>
+                <span class="join__seam">{{ placedEdge.edge.relation }} · {{ placedEdge.edge.seam }}</span>
+              </div>
+            }
+
+            @for (placedEdge of outbound(); track $index) {
+              <div class="join">
+                <span class="join__dir">
+                  <span class="ms ms--xs" aria-hidden="true">north_east</span>
+                  to
+                </span>
+                <code class="truncate">{{ placedEdge.edge.to }}</code>
+                <span
+                  class="chip"
+                  [class]="'chip--' + placedEdge.edge.confidence"
+                  [title]="confidenceHint(placedEdge.edge.confidence)"
+                >
+                  {{ placedEdge.edge.confidence }}
+                </span>
+                <span class="join__seam">{{ placedEdge.edge.relation }} · {{ placedEdge.edge.seam }}</span>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="inspector__idle">
+            <span class="ms ms--xl" aria-hidden="true">ads_click</span>
+            <p class="hint">
+              Select a node to see what was found on it and which joins reach it. Nodes carrying a
+              badge have findings against them.
+            </p>
+          </div>
+        }
+      </aside>
+    </div>
+  }
+</div>

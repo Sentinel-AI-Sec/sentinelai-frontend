@@ -1,0 +1,29 @@
+/* Only the form column belongs to this screen; the canvas around it is app-auth-canvas. */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form__head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.35rem;
+}
+
+.form__head h1 {
+  font-size: 1.6rem;
+}
+
+.form__head .lede {
+  font-size: 0.86rem;
+}
+
+.form__foot {
+  margin-top: 0.35rem;
+  font-size: 0.82rem;
+  color: var(--text-mute);
+  text-align: center;
+}

@@ -1,0 +1,8 @@
+{
+  "/v1": {
+    "target": "https://sentinelaiapi-app-20260818105221.orangemeadow-4eb00442.swedencentral.azurecontainerapps.io",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "info"
+  }
+}

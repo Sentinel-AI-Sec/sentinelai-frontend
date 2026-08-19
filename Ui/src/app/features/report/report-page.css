@@ -1,0 +1,199 @@
+/*
+ * Screen-specific layout only. Cards, chips, KPI tiles, the severity ramp and the loading
+ * states all come from the global system.
+ */
+
+.state__icon {
+  color: var(--text-mute);
+  opacity: 0.6;
+}
+
+.summary {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: var(--text-dim);
+  max-width: 76ch;
+}
+
+/* ---- severity posture --------------------------------------------------------------------- */
+
+/*
+ * A stacked bar rather than a donut: the question a reader has is "how much of this is
+ * critical", which is a comparison of lengths against one baseline — the thing a bar is good at
+ * and a ring is not. Worst band first, so the answer sits under the eye.
+ */
+.posture {
+  display: flex;
+  height: 10px;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  background: var(--bg-deep);
+}
+
+.posture__band {
+  height: 100%;
+  min-width: 3px;
+  transition: width 0.5s var(--ease);
+}
+
+.posture--4 {
+  background: var(--sev-critical);
+}
+
+.posture--3 {
+  background: var(--sev-high);
+}
+
+.posture--2 {
+  background: var(--sev-medium);
+}
+
+.posture--1 {
+  background: var(--sev-low);
+}
+
+.posture--0 {
+  background: var(--sev-none);
+}
+
+.legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.1rem;
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.legend__count {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* ---- KPI overrides ------------------------------------------------------------------------ */
+
+/* A tier name is a word, not a figure, so it drops to a readable size and takes the tier hue. */
+.kpi__value--tier {
+  font-size: 1.35rem;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+}
+
+.tier--certain {
+  color: var(--tier-certain);
+}
+
+.tier--inferred {
+  color: var(--tier-inferred);
+}
+
+.tier--unresolved {
+  color: var(--tier-unresolved);
+}
+
+.kpi__value--sm {
+  font-size: 1.15rem;
+  letter-spacing: 0;
+  word-break: break-all;
+}
+
+/* ---- chains ------------------------------------------------------------------------------- */
+
+.chains {
+  gap: 1rem;
+}
+
+.count {
+  margin-left: 0.5rem;
+  padding: 0.05rem 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  vertical-align: middle;
+}
+
+.note {
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--text-mute);
+  max-width: 76ch;
+}
+
+/* ---- citations ---------------------------------------------------------------------------- */
+
+.citations {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.citations li {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-soft);
+  background: var(--bg-deep);
+}
+
+.citations__source {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.82rem;
+  color: var(--text-dim);
+}
+
+/* ---- provenance --------------------------------------------------------------------------- */
+
+.provenance {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 1.75rem;
+  padding: 1rem 1.25rem;
+}
+
+.provenance__item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.provenance__label {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+}
+
+.provenance code {
+  font-size: 0.76rem;
+  color: var(--text-dim);
+  word-break: break-all;
+}
+
+@media (max-width: 45rem) {
+  .page-head__actions {
+    width: 100%;
+  }
+}
