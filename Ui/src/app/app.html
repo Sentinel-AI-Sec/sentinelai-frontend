@@ -1,39 +1,176 @@
-<header class="topbar">
-  <a class="brand" routerLink="/">
-    <span class="mark" aria-hidden="true"></span>
-    SentinelAI
-  </a>
-
-  @if (auth.isAuthenticated()) {
-    <nav class="nav">
-      <a routerLink="/projects" routerLinkActive="active">Projects</a>
-      <a routerLink="/scans/new" routerLinkActive="active">New scan</a>
-      <a routerLink="/debate" routerLinkActive="active">Debate</a>
-      <a routerLink="/account" routerLinkActive="active">Account</a>
-    </nav>
-  }
-
-  <div class="topbar__right">
-    @if (demoMode) {
-      <span class="chip" title="No backend is being called; the reference fixture's audit is shown">
-        demo data
-      </span>
+@if (bare()) {
+  <!-- Auth screens: no navigation to offer yet, so none is rendered. -->
+  <main class="bare">
+    <router-outlet />
+  </main>
+} @else {
+  <header class="topbar">
+    @if (auth.isAuthenticated()) {
+      <button
+        type="button"
+        class="icon-btn topbar__burger"
+        [attr.aria-expanded]="navOpen()"
+        aria-label="Toggle navigation"
+        (click)="toggleNav()"
+      >
+        <span class="ms" aria-hidden="true">{{ navOpen() ? 'close' : 'menu' }}</span>
+      </button>
     }
+
+    <a class="brand" routerLink="/">
+      <span class="brand__mark" aria-hidden="true">
+        <span class="ms ms--sm ms--fill">security</span>
+      </span>
+      <span class="brand__name">SentinelAI</span>
+    </a>
 
     @if (auth.isAuthenticated()) {
-      <span class="who">
-        {{ auth.role() }} · <code>{{ auth.tenantId() }}</code>
-      </span>
-      <button type="button" (click)="signOut()">Sign out</button>
+      <nav class="crumbs" aria-label="Breadcrumb">
+        @for (crumb of crumbs(); track $index) {
+          <span class="ms ms--xs crumbs__sep" aria-hidden="true">chevron_right</span>
+          @if (crumb.link) {
+            <a [routerLink]="crumb.link">{{ crumb.label }}</a>
+          } @else {
+            <span class="crumbs__leaf" [attr.aria-current]="$last ? 'page' : null">
+              {{ crumb.label }}
+            </span>
+          }
+        }
+      </nav>
     }
-  </div>
-</header>
 
-<main>
-  <router-outlet />
-</main>
+    <div class="topbar__right">
+      @if (demoMode) {
+        <span
+          class="chip chip--warn"
+          title="No backend is being called; the reference fixture's audit is shown"
+        >
+          <span class="chip__dot" aria-hidden="true"></span>
+          demo data
+        </span>
+      }
+
+      @if (auth.isAuthenticated()) {
+        <a class="btn btn--soft btn--sm btn--pill topbar__cta" routerLink="/scans/new">
+          <span class="ms ms--sm" aria-hidden="true">add</span>
+          New scan
+        </a>
+
+        <div class="usermenu">
+          <button
+            type="button"
+            class="usermenu__trigger"
+            [attr.aria-expanded]="userMenuOpen()"
+            (click)="toggleUserMenu()"
+          >
+            <span class="usermenu__avatar" aria-hidden="true">{{ (auth.role() ?? '?')[0] }}</span>
+            <span class="usermenu__who">
+              <span class="usermenu__role">{{ auth.role() }}</span>
+              <span class="usermenu__tenant mono">{{ auth.tenantId() }}</span>
+            </span>
+            <span class="ms ms--sm" aria-hidden="true">expand_more</span>
+          </button>
+
+          @if (userMenuOpen()) {
+            <div class="usermenu__panel rise">
+              <div class="usermenu__head">
+                <div class="usermenu__label">Signed in as</div>
+                <div class="usermenu__role">{{ auth.role() }}</div>
+                <code class="usermenu__tenant">{{ auth.tenantId() }}</code>
+              </div>
+
+              <a class="usermenu__item" routerLink="/account" (click)="toggleUserMenu()">
+                <span class="ms ms--sm" aria-hidden="true">manage_accounts</span>
+                Account
+              </a>
+
+              <button type="button" class="usermenu__item usermenu__item--danger" (click)="signOut()">
+                <span class="ms ms--sm" aria-hidden="true">logout</span>
+                Sign out
+              </button>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </header>
+
+  <div class="shell">
+    @if (auth.isAuthenticated()) {
+      <aside class="sidenav" [class.sidenav--open]="navOpen()">
+        <nav class="sidenav__group" aria-label="Main">
+          <div class="sidenav__label">Console</div>
+          @for (item of navItems; track item.link) {
+            <a
+              class="navlink"
+              [routerLink]="item.link"
+              routerLinkActive="navlink--active"
+              [routerLinkActiveOptions]="{ exact: !!item.exact }"
+              (click)="closeNav()"
+            >
+              <span class="ms ms--sm" aria-hidden="true">{{ item.icon }}</span>
+              <span>{{ item.label }}</span>
+            </a>
+          }
+        </nav>
+
+        @if (recents.entries().length > 0) {
+          <nav class="sidenav__group" aria-label="Recently opened">
+            <div class="sidenav__label">
+              Recent
+              <span class="sidenav__label-note" title="Remembered in this browser only">local</span>
+            </div>
+
+            @for (entry of recents.entries(); track entry.kind + entry.id) {
+              <a
+                class="navlink navlink--recent"
+                [routerLink]="
+                  entry.kind === 'scan' ? ['/scans', entry.id, 'ops'] : ['/reports', entry.id]
+                "
+                routerLinkActive="navlink--active"
+                (click)="closeNav()"
+                [title]="entry.id"
+              >
+                <span class="ms ms--sm" aria-hidden="true">
+                  {{ entry.kind === 'scan' ? 'radar' : 'description' }}
+                </span>
+                <span class="truncate">{{ entry.label ?? entry.id }}</span>
+              </a>
+            }
+          </nav>
+        }
+
+        <div class="sidenav__foot">
+          <div class="workspace">
+            <span class="workspace__icon ms ms--sm" aria-hidden="true">domain</span>
+            <span class="workspace__body">
+              <span class="workspace__label">Tenant scope</span>
+              <code class="workspace__value truncate">{{ auth.tenantId() }}</code>
+            </span>
+          </div>
+        </div>
+      </aside>
+
+      @if (navOpen()) {
+        <button
+          type="button"
+          class="sidenav__scrim"
+          aria-label="Close navigation"
+          (click)="closeNav()"
+        ></button>
+      }
+    }
+
+    <main class="content">
+      <router-outlet />
+    </main>
+  </div>
+}
 
 <footer class="foot">
-  Draft audits are generated for human review. SentinelAI reports paths that exist in your resource
-  graph — it does not execute or prove exploits.
+  <span class="ms ms--sm" aria-hidden="true">gavel</span>
+  <span>
+    Draft audits are generated for human review. SentinelAI reports paths that exist in your
+    resource graph — it does not execute or prove exploits.
+  </span>
 </footer>

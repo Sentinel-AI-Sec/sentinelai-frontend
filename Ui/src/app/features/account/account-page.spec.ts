@@ -7,7 +7,7 @@ import { of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 
 import { AccountApi } from '../../core/api/account-api';
-import { Auth } from '../../core/auth/auth';
+import { Auth, Session } from '../../core/auth/auth';
 import { AccountPage } from './account-page';
 
 /** Stands in for the real login page so `router.navigate(['/login'])` has somewhere to land. */
@@ -25,6 +25,22 @@ class FakeAuth {
   }
   tenantId() {
     return this.tenantIdValue;
+  }
+  /**
+   * The screen shows the token's scopes and both expiries, so the double has to carry a
+   * session rather than only a role and a tenant — a stub that answers `undefined` here would
+   * have the page silently skip the half of itself that explains *why* an action is gated.
+   */
+  session(): Session | null {
+    return {
+      accessToken: 'access',
+      refreshToken: 'refresh',
+      tenantId: this.tenantIdValue,
+      role: this.roleValue,
+      scopes: ['scan:read', 'report:read'],
+      expiresAt: '2026-01-01T00:00:00Z',
+      refreshExpiresAt: '2026-02-01T00:00:00Z',
+    };
   }
 }
 

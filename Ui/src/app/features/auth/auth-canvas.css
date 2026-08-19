@@ -1,0 +1,166 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.auth {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: calc(100dvh - 4rem);
+}
+
+/* ---- Brand panel -------------------------------------------------------------------------- */
+
+.auth__brand {
+  display: none;
+  position: relative;
+  overflow: hidden;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 3rem 3rem 2.25rem;
+  border-right: 1px solid var(--border-soft);
+}
+
+/*
+ * A single soft accent bloom behind the wordmark, not a wash over the whole panel: the type has
+ * to stay the brightest thing here, and a full-panel gradient drags the body copy down toward
+ * the contrast floor.
+ */
+.auth__glow {
+  position: absolute;
+  top: -18%;
+  left: -12%;
+  width: 46rem;
+  height: 46rem;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(128, 131, 255, 0.22) 0%,
+    rgba(128, 131, 255, 0.07) 38%,
+    transparent 68%
+  );
+  pointer-events: none;
+}
+
+.auth__brandbody {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  max-width: 34rem;
+}
+
+.auth__mark {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.mark__tile {
+  width: 46px;
+  height: 46px;
+  flex: none;
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(128, 131, 255, 0.2);
+  border: 1px solid rgba(128, 131, 255, 0.4);
+  color: var(--accent-soft);
+}
+
+.mark__name {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  line-height: 1.15;
+}
+
+.mark__kicker {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+}
+
+.auth__pitch {
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: var(--text-dim);
+}
+
+.auth__pitch em {
+  font-style: normal;
+  color: var(--accent-soft);
+}
+
+.points {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.point {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  font-size: 0.86rem;
+  line-height: 1.6;
+  color: var(--text-mute);
+}
+
+.point strong {
+  display: block;
+  color: var(--text);
+  font-weight: 650;
+}
+
+.point__icon {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  color: var(--accent-soft);
+  font-size: 18px;
+}
+
+
+/* ---- Form panel --------------------------------------------------------------------------- */
+
+.auth__form {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1.25rem 3.5rem;
+  background: var(--bg);
+}
+
+.auth__formInner {
+  width: 100%;
+  max-width: 24rem;
+}
+
+@media (min-width: 62rem) {
+  .auth {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  }
+
+  .auth__brand {
+    display: flex;
+  }
+
+  .auth__form {
+    padding: 3rem 3rem 3.5rem;
+  }
+}

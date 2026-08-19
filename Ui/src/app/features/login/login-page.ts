@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 import { Auth } from '../../core/auth/auth';
+import { AuthCanvas } from '../auth/auth-canvas';
 import { environment } from '../../core/config/environment';
 
 /**
@@ -16,7 +17,7 @@ import { environment } from '../../core/config/environment';
 @Component({
   selector: 'app-login-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, AuthCanvas],
   templateUrl: './login-page.html',
   styleUrl: './login-page.css',
 })

@@ -1,192 +1,199 @@
-.state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.9rem;
-  padding: 5rem 1rem;
-  color: var(--text-dim);
+/*
+ * Screen-specific layout only. Cards, chips, KPI tiles, the severity ramp and the loading
+ * states all come from the global system.
+ */
+
+.state__icon {
+  color: var(--text-mute);
+  opacity: 0.6;
 }
 
-.state--error {
-  color: var(--text);
-}
-
-.state--error h2 {
-  margin: 0;
-  font-size: 1.1rem;
-}
-
-.state--error p {
-  margin: 0;
-  color: var(--text-dim);
-}
-
-.spinner {
-  width: 1.5rem;
-  height: 1.5rem;
-  border: 2px solid var(--border);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .spinner {
-    animation-duration: 3s;
-  }
-}
-
-/* ---- report -------------------------------------------------------------- */
-
-.report {
-  display: flex;
-  flex-direction: column;
-  gap: 1.75rem;
-}
-
-.report__head {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.eyebrow {
-  margin: 0 0 0.3rem;
-  font-size: 0.8rem;
-  color: var(--text-dim);
-}
-
-.report__head h1 {
-  margin: 0;
-  font-size: 1.6rem;
-  font-weight: 650;
-  letter-spacing: -0.02em;
-}
-
-.facts {
-  display: flex;
-  gap: 1.5rem;
-  margin: 0;
-  flex-wrap: wrap;
-}
-
-.facts dt {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-dim);
-  margin-bottom: 0.2rem;
-}
-
-.facts dd {
-  margin: 0;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.facts .sub {
-  font-weight: 400;
-  color: var(--text-dim);
-  font-size: 0.75rem;
-}
-
-section h2 {
-  margin: 0 0 0.75rem;
+.summary {
   font-size: 0.95rem;
-  font-weight: 650;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.count {
-  padding: 0.05rem 0.45rem;
-  border-radius: 999px;
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  font-size: 0.75rem;
+  line-height: 1.7;
   color: var(--text-dim);
-  font-weight: 600;
+  max-width: 76ch;
 }
 
-.summary p {
-  margin: 0;
-  font-size: 0.95rem;
-  line-height: 1.65;
-  max-width: 68ch;
-}
+/* ---- severity posture --------------------------------------------------------------------- */
 
-.chains {
+/*
+ * A stacked bar rather than a donut: the question a reader has is "how much of this is
+ * critical", which is a comparison of lengths against one baseline — the thing a bar is good at
+ * and a ring is not. Worst band first, so the answer sits under the eye.
+ */
+.posture {
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  height: 10px;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  background: var(--bg-deep);
 }
 
-.chains--refuted {
-  opacity: 0.75;
+.posture__band {
+  height: 100%;
+  min-width: 3px;
+  transition: width 0.5s var(--ease);
 }
 
-.note,
-.empty {
-  margin: 0;
-  font-size: 0.85rem;
-  color: var(--text-dim);
-  max-width: 68ch;
+.posture--4 {
+  background: var(--sev-critical);
 }
 
-/* ---- citations ----------------------------------------------------------- */
+.posture--3 {
+  background: var(--sev-high);
+}
 
-.citations ul {
+.posture--2 {
+  background: var(--sev-medium);
+}
+
+.posture--1 {
+  background: var(--sev-low);
+}
+
+.posture--0 {
+  background: var(--sev-none);
+}
+
+.legend {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.5rem 1.1rem;
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.legend__count {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* ---- KPI overrides ------------------------------------------------------------------------ */
+
+/* A tier name is a word, not a figure, so it drops to a readable size and takes the tier hue. */
+.kpi__value--tier {
+  font-size: 1.35rem;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+}
+
+.tier--certain {
+  color: var(--tier-certain);
+}
+
+.tier--inferred {
+  color: var(--tier-inferred);
+}
+
+.tier--unresolved {
+  color: var(--tier-unresolved);
+}
+
+.kpi__value--sm {
+  font-size: 1.15rem;
+  letter-spacing: 0;
+  word-break: break-all;
+}
+
+/* ---- chains ------------------------------------------------------------------------------- */
+
+.chains {
+  gap: 1rem;
+}
+
+.count {
+  margin-left: 0.5rem;
+  padding: 0.05rem 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  vertical-align: middle;
+}
+
+.note {
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--text-mute);
+  max-width: 76ch;
+}
+
+/* ---- citations ---------------------------------------------------------------------------- */
+
+.citations {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
 }
 
 .citations li {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.35rem 0.6rem;
-  border: 1px solid var(--border);
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  padding: 0.6rem 0.8rem;
   border-radius: var(--radius);
-  background: var(--surface);
-  font-size: 0.78rem;
+  border: 1px solid var(--border-soft);
+  background: var(--bg-deep);
 }
 
-.citations code {
-  font-family: var(--mono);
-  color: var(--accent);
-}
-
-.collection {
+.citations__source {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.82rem;
   color: var(--text-dim);
+}
+
+/* ---- provenance --------------------------------------------------------------------------- */
+
+.provenance {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 1.75rem;
+  padding: 1rem 1.25rem;
+}
+
+.provenance__item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.provenance__label {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  font-size: 0.68rem;
-  letter-spacing: 0.04em;
+  color: var(--text-mute);
 }
 
-button {
-  padding: 0.45rem 0.9rem;
-  border-radius: var(--radius);
-  border: 1px solid var(--border-strong);
-  background: var(--surface-2);
-  color: var(--text);
-  font: inherit;
-  font-size: 0.85rem;
-  cursor: pointer;
+.provenance code {
+  font-size: 0.76rem;
+  color: var(--text-dim);
+  word-break: break-all;
 }
 
-button:hover {
-  border-color: var(--accent);
+@media (max-width: 45rem) {
+  .page-head__actions {
+    width: 100%;
+  }
 }

@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 
-import { Chain, ChainHop, Finding } from '../../core/api/wire';
+import { Chain, ChainHop, ChainStatus, Finding } from '../../core/api/wire';
 import { ConfidenceBadge } from './confidence-badge';
 
 /** A hop paired with the finding that evidences it, resolved once instead of in the template. */
@@ -58,5 +58,31 @@ export class ChainCard {
 
   severityLabel(severity: number): string {
     return ['none', 'low', 'medium', 'high', 'critical'][severity] ?? String(severity);
+  }
+
+  /**
+   * A scanner is free to send a severity outside 0–4; clamping keeps such a value inside the
+   * palette instead of rendering an unstyled chip that reads as "no severity at all".
+   */
+  severityClass(severity: number): string {
+    return `sev--${Math.min(Math.max(Math.trunc(severity), 0), 4)}`;
+  }
+
+  /**
+   * Adjudication status as a chip modifier. `candidate` is deliberately neutral rather than
+   * amber: it means the debate has not ruled on the chain yet, which is not the same as a
+   * warning about it.
+   */
+  statusClass(status: ChainStatus): string {
+    switch (status) {
+      case 'validated':
+        return 'chip--ok';
+      case 'asserted':
+        return 'chip--accent';
+      case 'rejected':
+        return 'chip--mute';
+      default:
+        return 'chip--mute';
+    }
   }
 }

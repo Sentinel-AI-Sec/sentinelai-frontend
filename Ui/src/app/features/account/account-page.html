@@ -1,51 +1,173 @@
-<div class="panel">
-  <h1>Account</h1>
-  <p class="lede">
-    Signed in as <code>{{ auth.role() }}</code> on tenant <code>{{ auth.tenantId() }}</code>.
-  </p>
+<div class="page page--narrow">
+  <header class="page-head">
+    <div class="page-head__main">
+      <p class="eyebrow">
+        <span class="ms ms--sm" aria-hidden="true">manage_accounts</span>
+        Identity and access
+      </p>
+      <h1>Account</h1>
+    </div>
+  </header>
 
   @if (demoMode) {
-    <p class="gate" role="note">Demo mode — no backend is called; this only signs you out locally.</p>
+    <p class="gate" role="note">
+      <span class="ms ms--sm" aria-hidden="true">science</span>
+      <span>Demo mode — no backend is called; this only signs you out locally.</span>
+    </p>
   }
 
-  <h2>Delete account</h2>
-  @if (!isAdmin) {
-    <p class="gate">Deleting the account requires the admin role.</p>
-  } @else {
-    <div class="card">
-      <p class="field-hint" style="margin: 0 0 0.75rem">
-        Permanently deletes this account and everything it owns — projects, scan jobs, stored
-        bundles, findings, the resource graph, chains and reports.
-        <strong>This cannot be undone.</strong> Nothing is soft-deleted or recoverable.
-      </p>
+  <section class="card identity">
+    <div class="identity__head">
+      <span class="identity__avatar" aria-hidden="true">{{ initial() }}</span>
 
-      <div class="field">
-        <label for="confirmation">
-          Type the tenant id (<code>{{ auth.tenantId() }}</code>) to confirm
-        </label>
-        <input
-          id="confirmation"
-          name="confirmation"
-          type="text"
-          [ngModel]="confirmation()"
-          (ngModelChange)="confirmation.set($event)"
-        />
-      </div>
-
-      @if (error(); as message) {
-        <p class="error" role="alert">{{ message }}</p>
-      }
-
-      <div class="actions">
-        <button
-          type="button"
-          class="danger"
-          [disabled]="deleting() || !confirmationMatches()"
-          (click)="deleteAccount()"
-        >
-          {{ deleting() ? 'Deleting…' : 'Permanently delete account' }}
-        </button>
+      <div class="identity__who">
+        <div class="identity__role">
+          <span class="chip chip--accent">{{ auth.role() }}</span>
+        </div>
+        <div class="identity__tenant">
+          <span class="identity__label">Tenant</span>
+          <code class="truncate">{{ auth.tenantId() }}</code>
+          <button
+            type="button"
+            class="icon-btn"
+            aria-label="Copy tenant id"
+            title="Copy tenant id"
+            (click)="copyTenantId()"
+          >
+            <span class="ms ms--sm" aria-hidden="true">
+              {{ copied() ? 'check' : 'content_copy' }}
+            </span>
+          </button>
+        </div>
       </div>
     </div>
+
+    <div class="identity__scopes">
+      <span class="identity__label">Scopes on this token</span>
+      @let scopes = session()?.scopes ?? [];
+      @if (scopes.length > 0) {
+        <div class="identity__chips">
+          @for (scope of scopes; track scope) {
+            <span class="chip chip--ok">
+              <span class="ms ms--xs" aria-hidden="true">key</span>
+              {{ scope }}
+            </span>
+          }
+        </div>
+      } @else {
+        <p class="hint">No scopes are recorded for this session.</p>
+      }
+      <p class="field-hint">
+        These are what the console gates its actions on, and what the backend checks again on
+        every request. A greyed-out button here always traces back to something missing above.
+      </p>
+    </div>
+
+    <p class="field-hint identity__note">
+      The tenant is a claim inside your token, not a setting — no screen can ask the API for
+      another organisation's data.
+    </p>
+  </section>
+
+  @if (session(); as active) {
+    <section class="card">
+      <div class="card__head">
+        <h2 class="card__title">
+          <span class="ms ms--sm" aria-hidden="true">schedule</span>
+          Session
+        </h2>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <tbody>
+            <tr>
+              <th>Access token expires</th>
+              <td>{{ active.expiresAt | date: 'medium' }}</td>
+            </tr>
+            <tr>
+              <th>Refresh token expires</th>
+              <td>{{ active.refreshExpiresAt | date: 'medium' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="field-hint">
+        An expired access token does not end the session: the console trades the refresh token
+        for a new pair automatically and retries the request. The second date is the one that
+        actually signs you out.
+      </p>
+    </section>
   }
+
+  <section class="section">
+    <div class="section__head">
+      <h2 class="danger__heading">
+        <span class="ms ms--sm" aria-hidden="true">warning</span>
+        Danger zone
+      </h2>
+    </div>
+
+    @if (!isAdmin) {
+      <p class="gate">
+        <span class="ms ms--sm" aria-hidden="true">lock</span>
+        <span>Deleting the account requires the admin role.</span>
+      </p>
+    } @else {
+      <div class="card danger">
+        <h3 class="danger__title">Delete account</h3>
+
+        <p class="danger__body">
+          Permanently deletes this account and everything it owns — projects, scan jobs, stored
+          bundles, findings, the resource graph, chains and reports.
+          <strong>This cannot be undone.</strong> Nothing is soft-deleted, and there is no grace
+          period on the backend to recover from a mistake here.
+        </p>
+
+        <div class="field">
+          <label for="confirmation">
+            Type the tenant id (<code>{{ auth.tenantId() }}</code>) to confirm
+          </label>
+          <input
+            id="confirmation"
+            name="confirmation"
+            type="text"
+            autocomplete="off"
+            spellcheck="false"
+            [ngModel]="confirmation()"
+            (ngModelChange)="confirmation.set($event)"
+          />
+        </div>
+
+        @if (error(); as message) {
+          <p class="error" role="alert">
+            <span class="ms ms--sm" aria-hidden="true">error</span>
+            <span>{{ message }}</span>
+          </p>
+        }
+
+        <div class="actions">
+          <button
+            type="button"
+            class="btn btn--danger"
+            [disabled]="deleting() || !confirmationMatches()"
+            (click)="deleteAccount()"
+          >
+            @if (deleting()) {
+              <span class="spinner" aria-hidden="true"></span>
+              Deleting…
+            } @else {
+              <span class="ms ms--sm" aria-hidden="true">delete_forever</span>
+              Permanently delete account
+            }
+          </button>
+
+          @if (!confirmationMatches()) {
+            <span class="hint">The button unlocks once the id matches exactly.</span>
+          }
+        </div>
+      </div>
+    }
+  </section>
 </div>

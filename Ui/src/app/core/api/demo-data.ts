@@ -1,4 +1,4 @@
-import { Chain, Finding, Report } from './wire';
+import { Chain, Finding, Report, ResourceGraph } from './wire';
 
 /**
  * The reference fixture's audit, in the exact wire shapes the read API returns.
@@ -222,4 +222,102 @@ export const demoReport: Report = {
     { knowledge_id: 'A08:2021', source: 'OWASP', collection: 'defense' },
   ],
   cost: { currency: 'USD', total: 0.42, model_calls: 11, rated: true },
+};
+
+/**
+ * The same fixture as a resource graph — the nodes the three chains above walk, and the joins
+ * between them.
+ *
+ * Derived from those chains rather than invented beside them: a demo graph that disagreed with
+ * the demo report would be worse than no demo graph, because the two screens are meant to be
+ * two views of one thing. Each edge carries the confidence the corresponding hop carries, so
+ * the unresolved image join is visibly the weak link on the topology exactly as it is in the
+ * audit.
+ *
+ * `is_hot` marks the nodes the backend flags as reached by a live path: the vulnerable package,
+ * the code that deserializes it, and the bucket at the end of the chain that was validated.
+ */
+export const demoGraph: ResourceGraph = {
+  scan_job_id: 'demo-scan',
+  nodes: [
+    { node_key: 'pkg:newtonsoft.json:12.0.1', type: 'pkg', layer: 'dep', is_hot: true },
+    { node_key: 'code:orderscontroller', type: 'code', layer: 'code', is_hot: true },
+    { node_key: 'code:reportscontroller', type: 'code', layer: 'code', is_hot: false },
+    { node_key: 'resource:dockerfile', type: 'image', layer: 'infra', is_hot: false },
+    { node_key: 'task:order', type: 'task', layer: 'infra', is_hot: false },
+    { node_key: 'task:legacy_worker', type: 'task', layer: 'infra', is_hot: false },
+    { node_key: 'iam_role:order_task_role', type: 'role', layer: 'infra', is_hot: false },
+    { node_key: 'iam_role:legacy_worker_role', type: 'role', layer: 'infra', is_hot: false },
+    { node_key: 's3:customer-data', type: 'resource', layer: 'infra', is_hot: true },
+    { node_key: 's3:build-artifacts', type: 'resource', layer: 'infra', is_hot: false },
+  ],
+  edges: [
+    {
+      from: 'pkg:newtonsoft.json:12.0.1',
+      to: 'code:orderscontroller',
+      relation: 'is_called_by',
+      seam: 'dep-code',
+      confidence: 'certain',
+      oriented_attack_dir: true,
+    },
+    {
+      from: 'code:orderscontroller',
+      to: 'task:order',
+      relation: 'runs_in',
+      seam: 'code-infra',
+      // The join the whole fixture turns on: an image *name* match, not a digest.
+      confidence: 'inferred',
+      oriented_attack_dir: true,
+    },
+    {
+      from: 'task:order',
+      to: 'iam_role:order_task_role',
+      relation: 'assumes',
+      seam: 'infra-spine',
+      confidence: 'certain',
+      oriented_attack_dir: true,
+    },
+    {
+      from: 'iam_role:order_task_role',
+      to: 's3:customer-data',
+      relation: 'can_read',
+      seam: 'role-resource',
+      confidence: 'certain',
+      oriented_attack_dir: true,
+    },
+    {
+      from: 'code:reportscontroller',
+      to: 'task:legacy_worker',
+      relation: 'runs_in',
+      // Unresolved: the image name matches no Dockerfile in the bundle.
+      seam: 'code-infra',
+      confidence: 'unresolved',
+      oriented_attack_dir: true,
+    },
+    {
+      from: 'task:legacy_worker',
+      to: 'iam_role:legacy_worker_role',
+      relation: 'assumes',
+      seam: 'infra-spine',
+      confidence: 'certain',
+      oriented_attack_dir: true,
+    },
+    {
+      from: 'iam_role:legacy_worker_role',
+      to: 's3:build-artifacts',
+      relation: 'can_read',
+      seam: 'role-resource',
+      confidence: 'certain',
+      oriented_attack_dir: true,
+    },
+    {
+      from: 'resource:dockerfile',
+      to: 'task:order',
+      relation: 'builds',
+      seam: 'infra-spine',
+      confidence: 'certain',
+      // Provenance, not an attack step — it is how the task got its image.
+      oriented_attack_dir: false,
+    },
+  ],
 };

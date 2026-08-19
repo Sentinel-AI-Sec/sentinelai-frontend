@@ -1,8 +1,24 @@
+/*
+ * Layout only. Chips, severity ramps and the confidence badge come from the global system, so
+ * a "certain" join looks the same here as it does in the graph inspector.
+ *
+ * --rail-x is where the vertical path line sits: the centre of a hop's order marker, which is
+ * the body's left padding plus half the marker. Both the join connector and the rail read it,
+ * so the line stays welded to the markers if either measurement changes.
+ */
 .chain {
+  --rail-x: 1.75rem;
+
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
   padding: 1.25rem;
+}
+
+/* Kept visible so the reasoning can be checked, pushed back so it is not mistaken for live. */
+.chain--rejected {
+  opacity: 0.72;
+  background: var(--surface-2);
 }
 
 .chain__head {
@@ -21,17 +37,24 @@
 }
 
 .rank {
+  font-family: var(--mono);
   font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--text-dim);
+  font-weight: 800;
+  color: var(--accent-soft);
+  flex: none;
 }
 
 .chain__title h3 {
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: 600;
-  line-height: 1.4;
+  font-size: 1rem;
+  font-weight: 650;
+  line-height: 1.45;
   word-break: break-word;
+  letter-spacing: -0.01em;
+}
+
+.chain__title code {
+  color: var(--text);
+  font-size: 0.92rem;
 }
 
 .chain__meta {
@@ -41,32 +64,19 @@
   flex-wrap: wrap;
 }
 
-.status {
-  padding: 0.15rem 0.55rem;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  background: var(--surface-2);
-  color: var(--text-dim);
-  border: 1px solid var(--border);
-}
-
-.status--validated {
-  color: var(--tier-certain);
-  border-color: color-mix(in srgb, var(--tier-certain) 35%, transparent);
-}
-
-.status--rejected {
-  color: var(--text-dim);
+.chain--rejected .status {
   text-decoration: line-through;
 }
 
 .chain__summary {
-  margin: 0.75rem 0 1.1rem;
-  font-size: 0.85rem;
+  margin: 0.75rem 0 1.15rem;
+  font-size: 0.82rem;
+  color: var(--text-mute);
+}
+
+.chain__summary strong {
   color: var(--text-dim);
+  font-weight: 650;
 }
 
 .ok {
@@ -77,7 +87,7 @@
   color: var(--tier-inferred);
 }
 
-/* ---- the path ------------------------------------------------------------ */
+/* ---- the path ---------------------------------------------------------------------------- */
 
 .hops {
   list-style: none;
@@ -89,22 +99,29 @@
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  padding: 0.35rem 0 0.35rem 0.55rem;
+  padding: 0.3rem 0 0.3rem calc(var(--rail-x) - 1px);
 }
 
 .join__line {
   width: 2px;
-  height: 1.5rem;
-  background: linear-gradient(to bottom, var(--border), var(--border-strong));
+  height: 1.6rem;
   border-radius: 2px;
+  background: linear-gradient(to bottom, var(--border-soft), var(--border-strong));
   flex: none;
 }
 
 .hop__body {
-  border: 1px solid var(--border);
-  border-radius: calc(var(--radius) - 2px);
-  padding: 0.75rem 0.9rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
   background: var(--surface-2);
+}
+
+/* The end of the path is the claim the whole chain exists to make, so it gets the one warm
+   border on the card. Nothing else in a chain is tinted by severity. */
+.hop--target .hop__body {
+  border-color: rgba(255, 180, 171, 0.45);
+  background: linear-gradient(135deg, rgba(255, 180, 171, 0.08), var(--surface-2));
 }
 
 .hop__head {
@@ -117,29 +134,38 @@
 .hop__order {
   display: grid;
   place-items: center;
-  width: 1.4rem;
-  height: 1.4rem;
+  width: 1.5rem;
+  height: 1.5rem;
   border-radius: 50%;
-  background: var(--border);
+  background: var(--raised);
   color: var(--text);
-  font-size: 0.7rem;
+  font-family: var(--mono);
+  font-size: 0.68rem;
   font-weight: 700;
   flex: none;
 }
 
+.hop--target .hop__order {
+  background: var(--sev-critical);
+  color: var(--on-accent);
+}
+
 .hop__node {
-  font-family: var(--mono);
-  font-size: 0.85rem;
+  font-size: 0.84rem;
   color: var(--text);
   word-break: break-all;
 }
 
 .check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   margin-left: auto;
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.06em;
   white-space: nowrap;
 }
 
@@ -148,31 +174,39 @@
 }
 
 .check--open {
-  color: var(--text-dim);
+  color: var(--text-mute);
+}
+
+.reached {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.55rem;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  color: var(--sev-critical);
 }
 
 .hop__technique {
-  margin: 0.5rem 0 0;
-  font-size: 0.78rem;
-  color: var(--text-dim);
+  margin-top: 0.55rem;
+  font-size: 0.76rem;
+  color: var(--text-mute);
 }
 
-.hop__technique a {
-  color: var(--accent);
-}
-
-/* ---- evidence ------------------------------------------------------------ */
+/* ---- evidence ---------------------------------------------------------------------------- */
 
 .evidence {
-  margin-top: 0.7rem;
-  padding-top: 0.7rem;
-  border-top: 1px dashed var(--border);
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--border-soft);
 }
 
 .evidence--none {
-  font-size: 0.78rem;
-  color: var(--text-dim);
+  font-size: 0.76rem;
+  color: var(--text-mute);
   font-style: italic;
+  line-height: 1.55;
 }
 
 .evidence__head {
@@ -180,45 +214,31 @@
   align-items: center;
   gap: 0.4rem;
   flex-wrap: wrap;
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.5rem;
 }
 
 .evidence__message {
-  margin: 0;
   font-size: 0.82rem;
-  line-height: 1.55;
-  color: var(--text);
+  line-height: 1.6;
+  color: var(--text-dim);
 }
 
-.sev,
 .tool,
 .key {
-  padding: 0.1rem 0.45rem;
-  border-radius: 4px;
-  font-size: 0.7rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-soft);
+  font-family: var(--mono);
+  font-size: 0.66rem;
   font-weight: 600;
-  border: 1px solid var(--border);
-  color: var(--text-dim);
+  color: var(--text-mute);
   white-space: nowrap;
 }
 
-.sev--4 {
-  color: var(--sev-critical);
-  border-color: color-mix(in srgb, var(--sev-critical) 40%, transparent);
-  background: color-mix(in srgb, var(--sev-critical) 10%, transparent);
-}
-
-.sev--3 {
-  color: var(--sev-high);
-  border-color: color-mix(in srgb, var(--sev-high) 40%, transparent);
-  background: color-mix(in srgb, var(--sev-high) 10%, transparent);
-}
-
-.key {
-  font-family: var(--mono);
-}
-
+/* Redaction is a claim about what the models were allowed to see, so it reads as a property of
+   the pipeline rather than as another scanner tag. */
 .key--redacted {
-  color: var(--accent);
-  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  color: var(--accent-soft);
+  border-color: rgba(128, 131, 255, 0.4);
+  background: rgba(128, 131, 255, 0.1);
 }
