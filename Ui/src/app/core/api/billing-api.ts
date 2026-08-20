@@ -8,11 +8,12 @@ import { ResponseEnvelope } from './wire';
 /**
  * Billing, against Stripe — through our own API, never from the browser.
  *
- * <b>None of these endpoints exist on the backend yet.</b> This file is the contract they have
- * to satisfy, written in one place so the screens above it are finished and the remaining work
- * is a backend ticket rather than a frontend rewrite. Every method is guarded on
- * {@link environment.billing}`.enabled`; while that is false each one fails immediately with
- * {@link BillingNotConfiguredError} instead of issuing a request that would 404.
+ * These endpoints are implemented (`SentinelAI.Api/Controllers/BillingController.cs`). Every
+ * method is still guarded on {@link environment.billing}`.enabled`, which now means "this
+ * deployment has a Stripe account configured" rather than "the backend has not been written
+ * yet": with it off, each call fails immediately with {@link BillingNotConfiguredError} rather
+ * than issuing a request the API would answer `503`. The screens render the same honest
+ * not-configured state either way; the flag saves a round trip and keeps the offline demo silent.
  *
  * <h3>Why Checkout and not Stripe.js</h3>
  *
@@ -37,10 +38,10 @@ import { ResponseEnvelope } from './wire';
  * `checkout.session.completed` webhook may promote a tenant's plan, and the screens here treat
  * the redirect purely as a cue to re-read {@link getSubscription}.
  *
- * Responses are assumed to ride in the same `Response` envelope the rest of the write API uses
- * (`statusCode`/`isSuccess`/`data`/`message`) — see {@link ResponseEnvelope}. If the billing
- * controller ends up returning bare bodies like the SEC-40 reads do, the `map` calls below are
- * the only lines that change.
+ * Responses ride in the same `Response` envelope the rest of the write API uses
+ * (`statusCode`/`isSuccess`/`data`/`message`) — see {@link ResponseEnvelope} — with snake_case
+ * fields inside it, matching the SEC-40 reads. That mismatch is inherited from the two
+ * conventions either side of it, not chosen here.
  */
 
 /** Where a tenant's subscription actually stands. Mirrors Stripe's own vocabulary. */
@@ -112,22 +113,30 @@ export class BillingApi {
   /**
    * Creates a Stripe Checkout Session and returns the URL to send the browser to.
    *
-   * `priceId` is passed rather than a plan name because Stripe prices the sale, not us — and
-   * the backend must still check the id against its own allow-list. A price id arriving from a
-   * browser is an input, not an instruction: without that check a caller could hand over the id
-   * of a $0 price and buy the Team plan for nothing.
+   * A plan id and a period are sent, never a Stripe Price id. An earlier draft sent the price
+   * and expected the backend to check it against an allow-list; passing the plan removes that
+   * check rather than performing it, because there is no longer an attacker-supplied identifier
+   * to validate. The only thing that can reach Stripe is a price the deployment wrote into its
+   * own configuration. It also stops this bundle and the server holding two copies of the same
+   * price table — see `core/billing/plans.ts`.
    */
-  startCheckout(priceId: string, quantity = 1): Observable<HostedSession> {
+  startCheckout(
+    planId: string,
+    period: 'monthly' | 'annual',
+    quantity = 1,
+  ): Observable<HostedSession> {
     if (!this.enabled) return throwError(() => new BillingNotConfiguredError());
 
     return this.http
       .post<ResponseEnvelope<HostedSession>>(`${this.base}/v1/billing/checkout`, {
-        priceId,
+        planId,
+        period,
         quantity,
         // Where Stripe sends the browser afterwards. Sent by the client so the redirect lands
         // back on the origin the customer actually started from, which differs between local
-        // development and the deployed app. The backend should accept only its own configured
-        // origins here — an unchecked return URL is an open redirect.
+        // development and the deployed app. The backend accepts only its own configured origins
+        // here (`Billing:AllowedReturnOrigins`, falling back to `Cors:AllowedOrigins`) — an
+        // unchecked return URL is an open redirect.
         successUrl: `${window.location.origin}/billing?checkout=success`,
         cancelUrl: `${window.location.origin}/billing?checkout=cancelled`,
       })

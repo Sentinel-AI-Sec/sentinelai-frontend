@@ -2,7 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { of, throwError } from 'rxjs';
+import { NEVER, of, throwError } from 'rxjs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { Auth } from '../../core/auth/auth';
@@ -136,16 +136,58 @@ describe('BillingPage', () => {
     expect(fixture.componentInstance.statusLabel()).toContain('ends at period close');
   });
 
-  it('refuses to check out against a plan with no configured price', () => {
+  it('never starts a checkout for a tier that is not sold by card', () => {
+    // Enterprise is priced by conversation. Clicking its row must not open Stripe.
     const startCheckout = vi.fn();
     const fixture = render({ getSubscription: () => of(onFree), startCheckout });
     const page = fixture.componentInstance;
 
-    // Every price id in the catalogue is empty until Stripe is set up.
-    const team = page.plans.find((plan) => plan.id === 'team')!;
-    expect(page.purchasable(team)).toBe(false);
+    const enterprise = page.plans.find((plan) => plan.id === 'enterprise')!;
+    expect(page.purchasable(enterprise)).toBe(false);
 
-    page.choose(team);
+    page.choose(enterprise);
     expect(startCheckout).not.toHaveBeenCalled();
+  });
+
+  it('upgrades by plan and period rather than by Stripe price id', () => {
+    const startCheckout = vi.fn(() => NEVER);
+    const fixture = render({ getSubscription: () => of(onFree), startCheckout });
+    const page = fixture.componentInstance;
+
+    page.setPeriod('annual');
+    page.choose(page.plans.find((plan) => plan.id === 'team')!);
+
+    expect(startCheckout).toHaveBeenCalledWith('team', 'annual');
+  });
+
+  it('reads a 503 from the API as "not configured", not as a failed read', () => {
+    // The local flag ships in the bundle and the Stripe keys ship in the environment, so a
+    // deployment is easily in one state and not the other. Reporting "could not read your
+    // subscription" for a deployment that simply sells nothing sends someone hunting a fault.
+    const fixture = render({
+      getSubscription: () => throwError(() => ({ status: 503 })),
+    });
+
+    expect(fixture.componentInstance.notConfigured()).toBe(true);
+    expect(fixture.componentInstance.error()).toBeNull();
+  });
+
+  it('surfaces the API reason when the portal will not open', () => {
+    const openPortal = vi.fn(() =>
+      throwError(() => ({
+        status: 400,
+        error: { message: 'this organisation has no billing account yet' },
+      })),
+    );
+    const fixture = render({ getSubscription: () => of(onFree), openPortal });
+    const page = fixture.componentInstance;
+
+    page.openPortal();
+
+    expect(page.actionError()).toContain('no billing account yet');
+
+    // No reassurance about charges here: opening a portal is not a payment, and volunteering
+    // that nothing was charged invites the reader to wonder whether something might have been.
+    expect(page.actionError()).not.toContain('Nothing has been charged');
   });
 });

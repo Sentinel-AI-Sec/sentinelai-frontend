@@ -31,17 +31,26 @@ export const environment = {
    * Checkout does not need one, and adding it would invite someone to reach for Stripe.js and
    * mount a card field here.
    *
-   * `enabled` is the switch. While it is false the billing screens still render — plans, the
-   * comparison, the current-plan panel — but every action that would spend money says plainly
-   * that billing is not configured instead of calling an endpoint that does not exist yet.
-   * That is the same rule the rest of this app follows: show the real state, never a mock of a
-   * successful outcome.
+   * `enabled` is the switch, and it now means "point this build at the billing API" rather than
+   * "the backend has been written". The four endpoints exist
+   * (`SentinelAI.Api/Controllers/BillingController.cs`); what they still need is a Stripe
+   * account, which is supplied to the API through `Billing:SecretKey` and
+   * `Billing:WebhookSecret` — never through this file, and never through this bundle.
    *
-   * To turn it on: implement the four endpoints named in `core/api/billing-api.ts`, put the
-   * Stripe **Price** ids into `core/billing/plans.ts` (they are public identifiers, safe to
-   * commit), and flip this to true.
+   * With it off, the billing screens still render in full — plans, the comparison, the
+   * current-plan panel — and every action that would spend money says plainly that billing is
+   * not configured, instead of issuing a request. With it on but the API holding no Stripe keys,
+   * the API answers `503` and the screens land in the same honest state. Nothing here ever mocks
+   * a successful payment.
+   *
+   * On for local development, where `ng serve` proxies to an API that answers either way. A
+   * deployment that has no Stripe account and wants the flow hidden entirely can turn it off in
+   * `environment.prod.ts`.
+   *
+   * There are no Stripe **Price** ids in this bundle any more — the API resolves a plan id and a
+   * period against its own configured price table. See `core/billing/plans.ts`.
    */
   billing: {
-    enabled: false,
+    enabled: true,
   },
 };

@@ -24,13 +24,14 @@ describe('BillingApi', () => {
   });
 
   it('refuses every action while billing is unconfigured, without touching the network', async () => {
-    // The endpoints do not exist yet. Issuing the request anyway would surface a 404 that reads
-    // like a backend fault, when the honest answer is "this deployment has no Stripe behind it".
+    // The endpoints exist, but this build has not been pointed at a Stripe account. Issuing the
+    // request anyway would surface a 503 the screens have to translate back into the same state
+    // — the honest answer is already known here, one round trip earlier.
     const { api, http } = setup(false);
 
     const calls: (() => Observable<unknown>)[] = [
       () => api.getSubscription(),
-      () => api.startCheckout('price_123'),
+      () => api.startCheckout('team', 'monthly'),
       () => api.openPortal(),
     ];
 
@@ -72,16 +73,24 @@ describe('BillingApi', () => {
     http.verify();
   });
 
-  it('sends the price id and same-origin return URLs when starting checkout', async () => {
+  it('sends the plan, the period and same-origin return URLs when starting checkout', async () => {
+    // No Stripe price id crosses this boundary, deliberately: one arriving from a browser is an
+    // input the API would have to distrust and validate, and holding the price table in the
+    // bundle as well as on the server is two copies to keep in step by hand.
+    //
     // The return URLs are sent by the client so the redirect lands back where the customer
-    // started. The backend still has to check them against its own allow-list — an unchecked
-    // return URL is an open redirect — but that is its job, not something this test can assert.
+    // started. The backend still checks them against its own allow-list — an unchecked return
+    // URL is an open redirect — but that is its job, not something this test can assert.
     const { api, http } = setup(true);
 
-    const result = new Promise((resolve) => api.startCheckout('price_team_annual', 4).subscribe(resolve));
+    const result = new Promise((resolve) =>
+      api.startCheckout('team', 'annual', 4).subscribe(resolve),
+    );
 
     const request = http.expectOne('/v1/billing/checkout');
-    expect(request.request.body.priceId).toBe('price_team_annual');
+    expect(request.request.body.planId).toBe('team');
+    expect(request.request.body.period).toBe('annual');
+    expect(request.request.body.priceId).toBeUndefined();
     expect(request.request.body.quantity).toBe(4);
     expect(request.request.body.successUrl).toContain('/billing?checkout=success');
     expect(request.request.body.cancelUrl).toContain('/billing?checkout=cancelled');

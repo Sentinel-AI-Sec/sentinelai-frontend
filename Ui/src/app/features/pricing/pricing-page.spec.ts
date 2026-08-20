@@ -3,6 +3,7 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
+import { NEVER, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 
 import { Auth } from '../../core/auth/auth';
@@ -105,10 +106,49 @@ describe('PricingPage', () => {
     expect(page.price(team).amount).toBe(priceFor(team, 'annual').amount);
   });
 
-  it('treats a plan with an empty Stripe price id as unbuyable', () => {
+  it('offers checkout only for the tiers that have a listed price', () => {
+    // Enterprise is priced by conversation and Developer comes with the account, so neither is
+    // something this flow can start. Whether the deployment actually sells Team at a given
+    // cadence is the API's answer, not this bundle's — it holds the price table.
     for (const plan of PLANS) {
-      expect(isPurchasable(plan, 'monthly')).toBe(false);
-      expect(isPurchasable(plan, 'annual')).toBe(false);
+      const buyable = plan.id === 'team';
+      expect(isPurchasable(plan, 'monthly')).toBe(buyable);
+      expect(isPurchasable(plan, 'annual')).toBe(buyable);
     }
+  });
+
+  it('checks out by plan and period, never by Stripe price id', () => {
+    // The price id is deliberately not in this bundle: sending one would make it an input the
+    // API has to distrust and validate, and would put a second copy of the price table in the
+    // browser to drift from the server's.
+    // NEVER, not of(...): a session that resolves would have the component call
+    // window.location.assign, which jsdom cannot do. The call being asserted happens before the
+    // observable emits anything.
+    const startCheckout = vi.fn(() => NEVER);
+    const fixture = render(true, { enabled: true, startCheckout });
+    const page = fixture.componentInstance;
+
+    page.setPeriod('monthly');
+    page.choose(PLANS.find((plan) => plan.id === 'team')!);
+
+    expect(startCheckout).toHaveBeenCalledWith('team', 'monthly');
+  });
+
+  it('shows the reason the API gave rather than a generic failure', () => {
+    // "starting a subscription requires the admin role" is something the reader can act on;
+    // "could not start checkout" sends an analyst to raise a ticket about a working system.
+    const startCheckout = vi.fn(() =>
+      throwError(() => ({ status: 403, error: { message: 'starting a subscription requires the admin role' } })),
+    );
+    const fixture = render(true, { enabled: true, startCheckout });
+    const page = fixture.componentInstance;
+
+    page.choose(PLANS.find((plan) => plan.id === 'team')!);
+
+    expect(page.error()).toContain('requires the admin role');
+
+    // And the reassurance survives, because it is the first thing anyone wants when a payment
+    // button fails.
+    expect(page.error()).toContain('Nothing has been charged');
   });
 });

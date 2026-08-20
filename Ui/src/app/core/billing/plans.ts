@@ -1,5 +1,5 @@
 /**
- * The plan catalogue — the one place a price, a limit or a Stripe Price id is written down.
+ * The plan catalogue — the one place a displayed price or a limit is written down.
  *
  * **Stripe is the source of truth for what a customer is actually charged.** The numbers here
  * are what the marketing page *displays*; Stripe's Price object is what the card is billed.
@@ -7,9 +7,14 @@
  * through templates — a price that appears in three templates will eventually disagree with
  * itself, and the copy a customer read is the one they will hold you to.
  *
- * `priceId` values are Stripe **Price** ids (`price_...`), not Product ids, and not secrets:
- * they identify a public price and are safe to commit. They are empty until the Stripe account
- * exists. Nothing in the UI guesses one — an empty id disables that plan's action and says why.
+ * **There are deliberately no Stripe Price ids here.** An earlier draft carried them, on the
+ * grounds that they are public identifiers and safe to commit — which is true, and beside the
+ * point. The backend has to hold the same table anyway, because a price id arriving from a
+ * browser is an input it must not act on unchecked; holding it in both places means two copies
+ * that have to be kept in step by hand, and the failure when they drift is a checkout that
+ * charges the wrong amount. So `POST /v1/billing/checkout` takes a plan id and a period — the
+ * two values below — and resolves the price against its own configuration. See
+ * `SentinelAI.Application/Abstractions/Billing/PlanCatalog.cs`.
  */
 
 /** Which cadence a customer is buying. Stripe needs a distinct Price object for each. */
@@ -19,7 +24,7 @@ export type BillingPeriod = 'monthly' | 'annual';
 export type PlanAction =
   /** Free — no Stripe involvement; the account already has it on sign-up. */
   | 'included'
-  /** Paid — starts a Stripe Checkout Session against {@link Plan.priceId}. */
+  /** Paid — starts a Stripe Checkout Session for {@link Plan.id} at the chosen period. */
   | 'checkout'
   /** Priced by conversation, not by card. */
   | 'contact';
@@ -27,8 +32,6 @@ export type PlanAction =
 export interface PlanPrice {
   /** Display amount per seat per month, in {@link Plan.currency}. Null for "Custom". */
   amount: number | null;
-  /** The Stripe Price id to check out against. Empty until Stripe is configured. */
-  priceId: string;
 }
 
 export interface Plan {
@@ -70,9 +73,17 @@ export function priceFor(plan: Plan, period: BillingPeriod): PlanPrice {
   return period === 'annual' ? plan.annual : plan.monthly;
 }
 
-/** Whether this plan can actually be bought right now. */
+/**
+ * Whether this plan is one the checkout flow can start at all.
+ *
+ * Only ever answers what is true on this side: Enterprise is sold by conversation, and the free
+ * tier is already included. Whether the deployment actually *sells* this plan at this cadence is
+ * the backend's answer — it holds the price table — and the honest way to find out is to ask,
+ * which is why an unsold plan comes back as a `400` with a reason rather than as a button that
+ * was greyed out on a guess.
+ */
 export function isPurchasable(plan: Plan, period: BillingPeriod): boolean {
-  return plan.action === 'checkout' && priceFor(plan, period).priceId.trim().length > 0;
+  return plan.action === 'checkout' && priceFor(plan, period).amount !== null;
 }
 
 export const PLANS: readonly Plan[] = [
@@ -81,8 +92,8 @@ export const PLANS: readonly Plan[] = [
     name: 'Developer',
     blurb: 'For solo builders and open-source maintainers.',
     currency: 'USD',
-    monthly: { amount: 0, priceId: '' },
-    annual: { amount: 0, priceId: '' },
+    monthly: { amount: 0 },
+    annual: { amount: 0 },
     action: 'included',
     cta: 'Included with your account',
     features: [
@@ -100,8 +111,8 @@ export const PLANS: readonly Plan[] = [
     currency: 'USD',
     // Per seat per month. The annual figure is the monthly-equivalent of the annual price,
     // which is how it is displayed — the customer is charged 12x this, once.
-    monthly: { amount: 49, priceId: '' },
-    annual: { amount: 39, priceId: '' },
+    monthly: { amount: 49 },
+    annual: { amount: 39 },
     action: 'checkout',
     cta: 'Start 14-day trial',
     featured: true,
@@ -118,8 +129,8 @@ export const PLANS: readonly Plan[] = [
     name: 'Enterprise',
     blurb: 'For regulated estates and private deployments.',
     currency: 'USD',
-    monthly: { amount: null, priceId: '' },
-    annual: { amount: null, priceId: '' },
+    monthly: { amount: null },
+    annual: { amount: null },
     action: 'contact',
     cta: 'Talk to us',
     features: [

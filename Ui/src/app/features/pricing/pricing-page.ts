@@ -4,6 +4,11 @@ import { Router, RouterLink } from '@angular/router';
 import { Auth } from '../../core/auth/auth';
 import { BillingApi } from '../../core/api/billing-api';
 import {
+  CHECKOUT_FAILED,
+  NOTHING_CHARGED,
+  billingErrorMessage,
+} from '../../core/billing/checkout-error';
+import {
   BillingPeriod,
   Plan,
   PLANS,
@@ -136,7 +141,7 @@ export class PricingPage {
   blockedReason(plan: Plan): string | null {
     if (plan.action !== 'checkout') return null;
     if (!this.billingEnabled) return 'Billing is not configured on this deployment yet.';
-    if (!this.purchasable(plan)) return 'This plan has no price configured yet.';
+    if (!this.purchasable(plan)) return 'This plan is not sold at that billing period.';
     return null;
   }
 
@@ -161,14 +166,14 @@ export class PricingPage {
 
     this.starting.set(plan.id);
 
-    this.billing.startCheckout(this.price(plan).priceId).subscribe({
+    this.billing.startCheckout(plan.id, this.period()).subscribe({
       next: (session) => {
         // Leaving the app entirely: Stripe hosts the card form, we never see it.
         window.location.assign(session.url);
       },
-      error: () => {
+      error: (err: unknown) => {
         this.starting.set(null);
-        this.error.set('Could not start checkout. Nothing has been charged — please try again.');
+        this.error.set(billingErrorMessage(err, CHECKOUT_FAILED, NOTHING_CHARGED));
       },
     });
   }

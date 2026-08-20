@@ -10,6 +10,13 @@ import {
   SubscriptionView,
 } from '../../core/api/billing-api';
 import {
+  CHECKOUT_FAILED,
+  NOTHING_CHARGED,
+  PORTAL_FAILED,
+  billingErrorMessage,
+  statusOf,
+} from '../../core/billing/checkout-error';
+import {
   BillingPeriod,
   Plan,
   PLANS,
@@ -128,10 +135,18 @@ export class BillingPage {
       },
       error: (err: unknown) => {
         this.loading.set(false);
-        if (err instanceof BillingNotConfiguredError) {
+
+        // Two ways to learn the same thing, and both have to land in the same state. The local
+        // flag is off on a build that was never pointed at a Stripe account; the API answers
+        // 503 when it has no keys. A deployment can easily be in the second without the first —
+        // the flag ships in the bundle and the keys ship in the environment — and treating that
+        // as a read failure would tell a customer their subscription could not be loaded when
+        // the truth is that this deployment does not sell anything.
+        if (err instanceof BillingNotConfiguredError || statusOf(err) === 503) {
           this.notConfigured.set(true);
           return;
         }
+
         this.error.set('Could not read this organisation’s subscription.');
       },
     });
@@ -160,13 +175,11 @@ export class BillingPage {
     this.actionError.set(null);
     this.working.set(plan.id);
 
-    this.api.startCheckout(this.price(plan).priceId).subscribe({
+    this.api.startCheckout(plan.id, this.period()).subscribe({
       next: (session) => window.location.assign(session.url),
-      error: () => {
+      error: (err: unknown) => {
         this.working.set(null);
-        this.actionError.set(
-          'Could not start checkout. Nothing has been charged — please try again.',
-        );
+        this.actionError.set(billingErrorMessage(err, CHECKOUT_FAILED, NOTHING_CHARGED));
       },
     });
   }
@@ -180,9 +193,9 @@ export class BillingPage {
 
     this.api.openPortal().subscribe({
       next: (session) => window.location.assign(session.url),
-      error: () => {
+      error: (err: unknown) => {
         this.working.set(null);
-        this.actionError.set('Could not open the billing portal. Please try again.');
+        this.actionError.set(billingErrorMessage(err, PORTAL_FAILED));
       },
     });
   }
