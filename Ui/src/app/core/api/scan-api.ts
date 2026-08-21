@@ -13,6 +13,7 @@ import {
   ResourceGraph,
   ResponseEnvelope,
   ScanJobResponse,
+  ScanListItem,
 } from './wire';
 
 /**
@@ -113,6 +114,32 @@ export class ScanApi {
     if (options.minSeverity != null) params = params.set('min_severity', options.minSeverity);
 
     return this.http.get<Page<Finding>>(`${this.base}/v1/scans/${scanJobId}/findings`, { params });
+  }
+
+  /**
+   * This tenant's scans, newest first, optionally narrowed by project or status.
+   *
+   * A server-side list rather than the browser's own record of what it has opened. Every scan is
+   * started by CI, on somebody's push — so a local index would show a fraction of them, and
+   * nothing at all on a machine the user has not used before.
+   *
+   * Cursor-paged with no total, because the read API exposes none. Callers must not derive a
+   * count from a page.
+   */
+  listScans(
+    options: { projectId?: string; status?: string; limit?: number; cursor?: string } = {},
+  ): Observable<Page<ScanListItem>> {
+    if (environment.useDemoData) {
+      return this.demo({ items: [] as ScanListItem[], next_cursor: null, limit: 20 });
+    }
+
+    let params = new HttpParams();
+    if (options.projectId) params = params.set('project_id', options.projectId);
+    if (options.status) params = params.set('status', options.status);
+    if (options.limit != null) params = params.set('limit', options.limit);
+    if (options.cursor) params = params.set('cursor', options.cursor);
+
+    return this.http.get<Page<ScanListItem>>(`${this.base}/v1/scans`, { params });
   }
 
   getChains(scanJobId: string, cursor?: string, limit?: number): Observable<Page<Chain>> {

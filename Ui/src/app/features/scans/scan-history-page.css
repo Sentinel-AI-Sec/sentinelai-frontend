@@ -1,0 +1,47 @@
+/*
+ * Filters sit on one line and wrap to stacked fields on a narrow screen, rather than the table
+ * scrolling sideways underneath a row of controls that no longer lines up with it.
+ */
+.filters {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.filters .field {
+  flex: 0 1 18rem;
+  min-width: 0;
+}
+
+.row-actions {
+  display: flex;
+  gap: 0.35rem;
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+/*
+ * The reason a scan failed, on its own row under the one it belongs to.
+ *
+ * Not a column: failure_reason is a sentence, and a sentence in a cell either truncates to
+ * uselessness or forces every other row's height. A scan that failed is the row a reader most
+ * needs to understand, so the text is given the width to be read.
+ */
+.failure-row td {
+  padding-top: 0;
+  color: var(--danger, #e5484d);
+  font-size: 0.85rem;
+  border-top: 0;
+}
+
+.actions--center {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}

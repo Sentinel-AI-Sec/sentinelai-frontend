@@ -71,12 +71,28 @@ the edge.
 3. **Partial validation stays partial.** A chain where Blue accepted three of five hops says
    exactly that. Rounding it up to "validated" is the most expensive lie this screen could
    tell, and a test pins it.
-4. **No invented aggregates.** The read API can fetch one scan and one report by id; it cannot
-   enumerate them. So there is no fleet dashboard, no "scans this week" tile, and no activity
-   feed. What the console remembers is what *this browser* has opened, and every surface that
-   shows it says so — see [`core/history/recents.ts`](Ui/src/app/core/history/recents.ts). The
-   findings page counts the rows it has loaded, not the scan, because under a cursor it cannot
-   honestly claim the latter.
+4. **No invented aggregates.** `GET /v1/scans` enumerates this tenant's scans, and `/scans`
+   renders them — so the history is served, not invented. What is still refused is a *derived*
+   number: the list endpoints expose no total, so there is no "scans this week" tile, because
+   counting a page and presenting it as a population is not counting. The findings page counts the
+   rows it has loaded, not the scan, for the same reason. What the console remembers separately is
+   what *this browser* has opened, and every surface that shows it says so — see
+   [`core/history/recents.ts`](Ui/src/app/core/history/recents.ts).
+
+## Scans are read here, not started here
+
+The console registers projects and reviews what the scans found. It does **not** run a scan: the
+GitHub Action does that, on a push, inside the customer's own CI.
+
+That is a privacy decision as much as a scoping one. A browser that could start a scan would need
+the backend to hold a GitHub credential, and there is nowhere safe to keep one — the backend
+documents that encryption at rest is not implemented on its host. Not holding the token is the
+guarantee. Nothing in this app calls GitHub, and no repository content is fetched by us.
+
+`/scans/new` still exists for submitting a bundle by hand, which is how the pipeline is driven with
+no CI run at all. It is off the navigation and gated on admin — a presentation choice, not an
+enforced one: `POST /v1/scans` authorises on the `scan:write` scope, which an analyst also holds,
+and it has to stay that way because the Action's machine token carries that scope and no role.
 
 ## Billing is built but not switched on
 
