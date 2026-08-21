@@ -1,3 +1,5 @@
+import { Environment } from './environment.model';
+
 /**
  * Runtime configuration for the read-only report UI (SEC-42).
  *
@@ -6,7 +8,7 @@
  * Apps instance. That keeps the JWT out of a cross-origin request in development, and means the
  * API needs no CORS configuration for us.
  */
-export const environment = {
+export const environment: Environment = {
   /** Same-origin by default; set to an absolute URL only for a deployed split-host setup. */
   apiBaseUrl: '',
 

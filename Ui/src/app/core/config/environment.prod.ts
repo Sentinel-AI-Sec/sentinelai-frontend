@@ -1,3 +1,5 @@
+import { Environment } from './environment.model';
+
 /**
  * Production build configuration. Swapped in for environment.ts by the
  * `fileReplacements` entry on angular.json's production configuration.
@@ -15,7 +17,7 @@
  * build would have failed on the first billing screen with a TypeError while every
  * local build worked.
  */
-export const environment = {
+export const environment: Environment = {
   apiBaseUrl: 'https://sentinelaiapi-app-20260818105221.orangemeadow-4eb00442.swedencentral.azurecontainerapps.io',
 
   useDemoData: false,

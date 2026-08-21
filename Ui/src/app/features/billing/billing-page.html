@@ -31,6 +31,30 @@
         the redirect said.
       </span>
     </p>
+
+    <!--
+      The banner above promises the plan will appear "once Stripe confirms it". These two states
+      are that promise being kept: the page keeps asking, and says which of the two things is true
+      rather than leaving a stale plan on screen underneath a green tick.
+    -->
+    @if (confirming()) {
+      <p class="gate" role="status" aria-live="polite">
+        <span class="spinner" aria-hidden="true"></span>
+        Waiting for Stripe to confirm the payment to our backend…
+      </p>
+    } @else if (confirmationTimedOut()) {
+      <p class="gate" role="status">
+        <span class="ms ms--sm" aria-hidden="true">schedule</span>
+        <span>
+          Stripe has not confirmed this to our backend yet. Your payment may still have gone
+          through — nothing is lost, and this page will show the new plan as soon as the
+          confirmation arrives.
+          <button type="button" class="btn btn--ghost btn--sm" (click)="load(true)">
+            Check again
+          </button>
+        </span>
+      </p>
+    }
   } @else if (checkout() === 'cancelled') {
     <p class="gate" role="status">
       <span class="ms ms--sm" aria-hidden="true">info</span>
@@ -153,7 +177,12 @@
           happens there.
         </p>
       </div>
-      <button type="button" class="btn" [disabled]="working() !== null" (click)="openPortal()">
+      <button
+        type="button"
+        class="btn"
+        [disabled]="working() !== null || !isAdmin()"
+        (click)="openPortal()"
+      >
         @if (working() === 'portal') {
           <span class="spinner" aria-hidden="true"></span>
           Opening…
@@ -163,6 +192,18 @@
         }
       </button>
     </section>
+
+    <!--
+      Money actions follow the same admin rule as registering a project or deleting the account,
+      and the API enforces it too. Saying so beats letting an analyst click a live button and
+      collect a raw 403.
+    -->
+    @if (!isAdmin()) {
+      <p class="gate" role="status">
+        <span class="ms ms--sm" aria-hidden="true">lock</span>
+        You can see this organisation’s plan, but changing it needs the admin role.
+      </p>
+    }
 
     <section class="section">
       <div class="section__head">
@@ -226,10 +267,35 @@
             } @else if (!purchasable(plan)) {
               <button type="button" class="btn btn--block" disabled>Not sold at this period</button>
             } @else {
+              <!--
+                Team is priced per seat, so the seat count is part of the purchase rather than
+                something to sort out afterwards in the portal.
+              -->
+              <label class="seats">
+                <span class="seats__label">Seats</span>
+                <input
+                  class="seats__input"
+                  type="number"
+                  min="1"
+                  max="500"
+                  step="1"
+                  [value]="seats()"
+                  [disabled]="working() !== null || !isAdmin()"
+                  (input)="onSeatsInput($event)"
+                  [attr.aria-label]="'Seats for ' + plan.name"
+                />
+                @if (price(plan).amount) {
+                  <span class="seats__total">
+                    ${{ (price(plan).amount ?? 0) * seats() }}
+                    @if (period() === 'annual') { / month equivalent } @else { / month }
+                  </span>
+                }
+              </label>
+
               <button
                 type="button"
                 class="btn btn--primary btn--block"
-                [disabled]="working() !== null"
+                [disabled]="working() !== null || !isAdmin()"
                 (click)="choose(plan)"
               >
                 @if (working() === plan.id) {
