@@ -10,6 +10,9 @@ import { ScanApi } from '../../core/api/scan-api';
 import { Page, ScanListItem } from '../../core/api/wire';
 import { ScanHistoryPage } from './scan-history-page';
 
+/** Whatever `ScanApi.listScans` actually accepts, so a mock of it stays honest. */
+type ListScansOptions = Parameters<ScanApi['listScans']>[0];
+
 function scan(overrides: Partial<ScanListItem> = {}): ScanListItem {
   return {
     scan_job_id: '8f2c1d4a-0000-4000-8000-000000000000',
@@ -54,7 +57,9 @@ describe('ScanHistoryPage', () => {
   it('reads the tenant-wide history, not one project', () => {
     // The whole point of the screen: a scan a colleague ran on another machine is still this
     // organisation's scan, so the first read carries no project filter.
-    const listScans = vi.fn(() => of(page([scan()])));
+    // Typed by the real signature rather than as a bare `() => ...`: an argument-less mock
+    // types `mock.calls[0]` as an empty tuple, so reading the options off it does not compile.
+    const listScans = vi.fn((_options?: ListScansOptions) => of(page([scan()])));
     render(listScans);
 
     expect(listScans).toHaveBeenCalledTimes(1);

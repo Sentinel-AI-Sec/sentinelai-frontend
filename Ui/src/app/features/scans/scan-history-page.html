@@ -1,4 +1,4 @@
-<div class="page">
+<div class="page page--wide">
   <header class="page-head">
     <div class="page-head__main">
       <p class="eyebrow">
@@ -76,67 +76,73 @@
       }
     </div>
   } @else {
-    <section class="card">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Started</th>
-            <th>Repository</th>
-            <th>Commit</th>
-            <th>Ref</th>
-            <th>Status</th>
-            <th>Stage</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (scan of scans(); track scan.scan_job_id) {
+    <section class="card card--flush">
+      <!--
+        The wrap is load-bearing, not decoration. Seven columns with nowrap dates and a
+        three-button action cell overflow on a laptop, and `body { overflow-x: hidden }` turns
+        that overflow into content that is clipped with no way to scroll to it — Status, Stage
+        and every action simply disappear off the right edge.
+      -->
+      <div class="table-wrap">
+        <table>
+          <thead>
             <tr>
-              <td class="nowrap">{{ scan.started_at | date: 'short' }}</td>
-              <td class="truncate">{{ repoLabel(scan) }}</td>
-              <td><code>{{ shortSha(scan) }}</code></td>
-              <td class="mute truncate">{{ scan.pr_ref || '—' }}</td>
-              <td>
-                <span class="chip" [class]="'chip ' + statusClass(scan)">{{ scan.status }}</span>
-              </td>
-              <td class="mute">{{ scan.stage }}</td>
-              <td class="row-actions">
-                <a class="btn btn--ghost btn--sm" [routerLink]="['/scans', scan.scan_job_id, 'ops']">
-                  Open
-                </a>
-                <a
-                  class="btn btn--ghost btn--sm"
-                  [routerLink]="['/scans', scan.scan_job_id, 'findings']"
-                >
-                  Findings
-                </a>
-                <!--
-                  The only route to an audit that does not involve typing a GUID: a report is
-                  addressed by REPORT id, and this list is the one place that knows the mapping.
-
-                  Absent is normal, not broken. Retention is opt-in (SEC-35, "silence means
-                  delete"), so a completed scan whose submitter did not ask for the report to be
-                  kept correctly has none.
-                -->
-                @if (scan.report_id) {
-                  <a class="btn btn--ghost btn--sm" [routerLink]="['/reports', scan.report_id]">
-                    Report
-                  </a>
-                }
-              </td>
+              <th scope="col">Started</th>
+              <th scope="col">Repository</th>
+              <th scope="col">Commit</th>
+              <th scope="col">Ref</th>
+              <th scope="col">Status</th>
+              <th scope="col">Stage</th>
+              <th scope="col" aria-label="Actions"></th>
             </tr>
+          </thead>
+          <tbody>
+            @for (scan of scans(); track scan.scan_job_id) {
+              <tr>
+                <td class="nowrap">{{ scan.started_at | date: 'short' }}</td>
+                <td class="truncate">{{ repoLabel(scan) }}</td>
+                <td><code>{{ shortSha(scan) }}</code></td>
+                <td class="mute truncate">{{ scan.pr_ref || '—' }}</td>
+                <td><span class="chip {{ statusClass(scan) }}">{{ scan.status }}</span></td>
+                <td class="mute">{{ scan.stage }}</td>
+                <td class="row-actions">
+                  <a class="btn btn--ghost btn--sm" [routerLink]="['/scans', scan.scan_job_id, 'ops']">
+                    Open
+                  </a>
+                  <a
+                    class="btn btn--ghost btn--sm"
+                    [routerLink]="['/scans', scan.scan_job_id, 'findings']"
+                  >
+                    Findings
+                  </a>
+                  <!--
+                    The only route to an audit that does not involve typing a GUID: a report is
+                    addressed by REPORT id, and this list is the one place that knows the mapping.
 
-            @if (scan.failure_reason) {
-              <tr class="failure-row">
-                <td colspan="7">
-                  <span class="ms ms--sm" aria-hidden="true">error</span>
-                  {{ scan.failure_reason }}
+                    Absent is normal, not broken. Retention is opt-in (SEC-35, "silence means
+                    delete"), so a completed scan whose submitter did not ask for the report to be
+                    kept correctly has none.
+                  -->
+                  @if (scan.report_id) {
+                    <a class="btn btn--ghost btn--sm" [routerLink]="['/reports', scan.report_id]">
+                      Report
+                    </a>
+                  }
                 </td>
               </tr>
+
+              @if (scan.failure_reason) {
+                <tr class="failure-row">
+                  <td colspan="7">
+                    <span class="ms ms--sm" aria-hidden="true">error</span>
+                    {{ scan.failure_reason }}
+                  </td>
+                </tr>
+              }
             }
-          }
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+      </div>
     </section>
 
     <!--

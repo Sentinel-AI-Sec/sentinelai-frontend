@@ -234,6 +234,12 @@ hr {
   min-width: 0;
 }
 
+/* The opposite of .truncate: a value that must not be broken across lines — a timestamp, an
+   identifier. Held here rather than in a screen's own file because three tables want it. */
+.nowrap {
+  white-space: nowrap;
+}
+
 /* ---- Scrollbars ------------------------------------------------------------------------ */
 
 * {
