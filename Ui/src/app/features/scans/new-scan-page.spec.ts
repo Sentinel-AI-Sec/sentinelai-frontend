@@ -19,9 +19,16 @@ const submitted: SubmitScanResponse = {
 };
 
 class FakeAuth {
-  constructor(private readonly hasScopeValue: boolean) {}
+  constructor(
+    private readonly hasScopeValue: boolean,
+    private readonly roleValue: string = 'admin',
+  ) {}
   hasScope() {
     return this.hasScopeValue;
+  }
+  /** Submitting a bundle by hand is an admin surface — see NewScanPage.isAdmin. */
+  role() {
+    return this.roleValue;
   }
   /** The screen files an accepted job into the tenant-keyed recents index on the way out. */
   tenantId() {
@@ -30,13 +37,17 @@ class FakeAuth {
 }
 
 describe('NewScanPage', () => {
-  function render(canWrite: boolean, submit?: (metadata: BundleMetadataInput, bundle: File) => ReturnType<ScanOpsApi['submit']>) {
+  function render(
+    canWrite: boolean,
+    submit?: (metadata: BundleMetadataInput, bundle: File) => ReturnType<ScanOpsApi['submit']>,
+    role = 'admin',
+  ) {
     TestBed.configureTestingModule({
       providers: [
         provideRouter([]),
         provideHttpClient(),
         provideHttpClientTesting(),
-        { provide: Auth, useValue: new FakeAuth(canWrite) },
+        { provide: Auth, useValue: new FakeAuth(canWrite, role) },
         { provide: ScanOpsApi, useValue: { submit } },
       ],
     });
@@ -52,6 +63,23 @@ describe('NewScanPage', () => {
     expect(fixture.componentInstance.canWrite).toBe(false);
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
     expect(text).toContain('scan:write');
+  });
+
+  it('does not offer the by-hand form to a non-admin', () => {
+    // Scans arrive from the Action; submitting a bundle by hand is not an everyday surface, so an
+    // analyst is pointed at the history instead of the form.
+    //
+    // This is presentation only, and the test says so rather than implying otherwise: the server
+    // authorises POST /v1/scans on the scan:write scope, which an analyst holds — it must, because
+    // the Action's machine token carries that scope and no role at all.
+    const submit = vi.fn();
+    const fixture = render(true, submit, 'analyst');
+
+    expect(fixture.componentInstance.isAdmin).toBe(false);
+
+    const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('admin operation');
+    expect(text).not.toContain('Scanner versions');
   });
 
   it('refuses to submit without a chosen bundle file', () => {

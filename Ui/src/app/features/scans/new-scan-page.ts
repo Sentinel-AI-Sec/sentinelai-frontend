@@ -49,6 +49,20 @@ export class NewScanPage {
   readonly dragging = signal(false);
 
   readonly canWrite = this.auth.hasScope('scan:write');
+
+  /**
+   * Whether to offer the form at all.
+   *
+   * <b>A presentation decision, not an enforced boundary — and it must not be mistaken for one.</b>
+   * `POST /v1/scans` authorises on the `scan:write` scope, which `analyst` holds as well as
+   * `admin` (`RoleScopes`), so an analyst calling the endpoint directly is still accepted. It has
+   * to stay that way: the GitHub Action authenticates with a machine token carrying `scan:write`
+   * and <em>no role at all</em>, so role-gating the submit handler would reject every real scan.
+   *
+   * What this gate buys is that submitting a bundle by hand is not something an ordinary user
+   * stumbles into. Scans come from CI; this screen is for driving the pipeline without it.
+   */
+  readonly isAdmin = this.auth.role() === 'admin';
   readonly demoMode = environment.useDemoData;
 
   /** Whether `scanner_versions` currently parses. Surfaced beside the field rather than only

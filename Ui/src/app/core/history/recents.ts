@@ -5,11 +5,16 @@ import { Auth } from '../auth/auth';
 /**
  * What this browser has opened, so the console has somewhere to send you back to.
  *
- * The read API deliberately has no "list my scans" or "list my reports" endpoint — SEC-40
- * covers reading *one* scan job and *one* report, addressed by id, and the ids reach a person
- * through the pull-request comment the Action posts. That is a real gap in the API, not one
- * this screen is allowed to paper over: inventing a fleet-wide activity feed out of nothing
- * would be the UI claiming knowledge it does not have.
+ * This used to say the read API had no way to enumerate scans, and that a jump list was the only
+ * honest substitute. That gap has since closed: `GET /v1/scans` is tenant-scoped, cursor-paged and
+ * served by the backend, and `/scans` renders it — so the organisation's history is now a real
+ * list rather than something the UI would have had to invent.
+ *
+ * This still earns its place, for a different reason. It is a *per-browser* jump list: the handful
+ * of things you personally opened, ordered by when you opened them, available in one click without
+ * a round trip. The history screen answers "what has this organisation scanned"; this answers
+ * "where was I". Neither replaces the other, and this one is still labelled local wherever it is
+ * shown, because it says nothing about anyone else's work.
  *
  * So this stores exactly what it can honestly claim — the ids *you* submitted or opened, in
  * *this* browser — and every surface that renders it says so. When a list endpoint lands, this

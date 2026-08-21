@@ -20,7 +20,16 @@
     </div>
   </div>
 
-  @if (!canWrite) {
+  @if (!isAdmin) {
+    <p class="gate">
+      <span class="ms ms--sm" aria-hidden="true">lock</span>
+      <span>
+        Submitting a bundle by hand is an admin operation. Scans normally arrive from the
+        SentinelAI Action when it runs in a registered repository — see
+        <a routerLink="/scans">Scan history</a> for what this organisation has already scanned.
+      </span>
+    </p>
+  } @else if (!canWrite) {
     <p class="gate">
       <span class="ms ms--sm" aria-hidden="true">lock</span>
       Submitting a scan requires the <code>scan:write</code> scope. Every human role except

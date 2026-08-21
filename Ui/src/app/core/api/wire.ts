@@ -223,6 +223,31 @@ export interface Report {
  * `limit` is the clamped page size the server actually applied, not the one that was asked
  * for — it caps at 200 — so it is what a "load more" control should page by.
  */
+/**
+ * One scan in the history list — `GET /v1/scans`.
+ *
+ * A superset of {@link ScanJobResponse} plus the three fields that make a row recognisable
+ * without a second request: `repo_url`, `pr_ref` and `commit_sha`. Nobody identifies their own
+ * scan by its GUID, which is what a list of bare ids would be.
+ */
+export interface ScanListItem {
+  scan_job_id: string;
+  project_id: string;
+  /** Joined from the project, so it is the repository's URL *now* — right for recognition. */
+  repo_url: string;
+  pr_ref: string;
+  commit_sha: string;
+  status: string;
+  stage: string;
+  /** Null when the submitter did not opt into retention, or the report was purged. */
+  report_id: string | null;
+  bundle_purged: boolean;
+  corpus_version: string;
+  failure_reason: string | null;
+  started_at: string;
+  completed_at: string | null;
+}
+
 export interface Page<T> {
   items: T[];
   next_cursor: string | null;

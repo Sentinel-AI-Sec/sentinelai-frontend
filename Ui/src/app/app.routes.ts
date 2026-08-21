@@ -45,6 +45,17 @@ export const routes: Routes = [
     title: 'Projects · SentinelAI',
   },
   {
+    // Declared before 'scans/new' only for readability — the two cannot collide, since every
+    // route below is matched on segment count and literal first.
+    path: 'scans',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/scans/scan-history-page').then((m) => m.ScanHistoryPage),
+    title: 'Scan history · SentinelAI',
+  },
+  {
+    // Kept, but off the navigation and gated on admin inside the component. Scans are started by
+    // the Action; this is the by-hand equivalent, for driving the pipeline without a CI run.
     path: 'scans/new',
     canActivate: [authGuard],
     loadComponent: () => import('./features/scans/new-scan-page').then((m) => m.NewScanPage),
