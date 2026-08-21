@@ -157,7 +157,9 @@ describe('BillingPage', () => {
     page.setPeriod('annual');
     page.choose(page.plans.find((plan) => plan.id === 'team')!);
 
-    expect(startCheckout).toHaveBeenCalledWith('team', 'annual');
+    // The third argument is the seat count, which defaults to 1 until the subscription says
+    // otherwise — see 'sends the chosen seat count to checkout' below.
+    expect(startCheckout).toHaveBeenCalledWith('team', 'annual', 1);
   });
 
   it('reads a 503 from the API as "not configured", not as a failed read', () => {
@@ -189,5 +191,112 @@ describe('BillingPage', () => {
     // No reassurance about charges here: opening a portal is not a payment, and volunteering
     // that nothing was charged invites the reader to wonder whether something might have been.
     expect(page.actionError()).not.toContain('Nothing has been charged');
+  });
+
+  it('sends the chosen seat count to checkout', () => {
+    // Team is priced per seat. startCheckout has always accepted a quantity and defaulted it to
+    // 1, so every purchase bought a single seat however big the team doing the buying was.
+    const startCheckout = vi.fn(() => NEVER);
+    const fixture = render({ getSubscription: () => of(onFree), startCheckout });
+    const page = fixture.componentInstance;
+
+    page.setPeriod('monthly');
+    page.setSeats(8);
+    page.choose(page.plans.find((plan) => plan.id === 'team')!);
+
+    expect(startCheckout).toHaveBeenCalledWith('team', 'monthly', 8);
+  });
+
+  it('defaults the seat count to the seats already paid for', () => {
+    const fixture = render({
+      getSubscription: () =>
+        of({ ...onFree, plan_id: 'team', status: 'active' as const, quantity: 6 }),
+    });
+
+    expect(fixture.componentInstance.seats()).toBe(6);
+  });
+
+  it('offers a non-admin no way to spend money', () => {
+    const startCheckout = vi.fn();
+
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        {
+          provide: Auth,
+          useValue: { tenantId: () => 't', role: () => 'analyst', isAuthenticated: () => true },
+        },
+        {
+          provide: BillingApi,
+          useValue: { enabled: true, getSubscription: () => of(onFree), startCheckout },
+        },
+      ],
+    });
+
+    const fixture = TestBed.createComponent(BillingPage);
+    fixture.detectChanges();
+    const page = fixture.componentInstance;
+
+    expect(page.isAdmin()).toBe(false);
+
+    page.choose(page.plans.find((plan) => plan.id === 'team')!);
+    expect(startCheckout).not.toHaveBeenCalled();
+  });
+
+  it('keeps re-reading after a checkout until the webhook lands', async () => {
+    // The promise the success banner makes. Stripe redirects the browser the instant the payment
+    // is taken; the webhook that promotes the plan arrives separately and later. Reading once
+    // leaves a stale plan sitting under a green tick until the customer works out that a refresh
+    // fixes it.
+    vi.useFakeTimers();
+
+    const onTeam: SubscriptionView = {
+      ...onFree,
+      plan_id: 'team',
+      status: 'active',
+      period: 'monthly',
+      quantity: 1,
+    };
+
+    const getSubscription = vi
+      .fn()
+      .mockReturnValueOnce(of(onFree)) // the redirect beat the webhook
+      .mockReturnValue(of(onTeam)); // ...and then it landed
+
+    const fixture = render({ getSubscription }, 'success');
+    const page = fixture.componentInstance;
+
+    // Honest immediately after the redirect: no plan claimed, and the page says it is waiting
+    // rather than pretending.
+    expect(page.status()).toBe('none');
+    expect(page.confirming()).toBe(true);
+
+    await vi.advanceTimersByTimeAsync(2100);
+    fixture.detectChanges();
+
+    expect(page.status()).toBe('active');
+    expect(page.currentPlan()?.id).toBe('team');
+    expect(page.confirming()).toBe(false);
+
+    vi.useRealTimers();
+  });
+
+  it('gives up visibly rather than spinning forever', async () => {
+    vi.useFakeTimers();
+
+    const fixture = render({ getSubscription: () => of(onFree) }, 'success');
+    const page = fixture.componentInstance;
+
+    // Ten attempts at two seconds, then it stops and says so.
+    await vi.advanceTimersByTimeAsync(2000 * 11);
+    fixture.detectChanges();
+
+    expect(page.confirming()).toBe(false);
+    expect(page.confirmationTimedOut()).toBe(true);
+
+    vi.useRealTimers();
   });
 });

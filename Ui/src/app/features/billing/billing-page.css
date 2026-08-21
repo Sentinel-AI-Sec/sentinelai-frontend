@@ -52,3 +52,40 @@
   max-width: 62ch;
   margin-top: 0.5rem;
 }
+
+/* Seat count. Team is priced per seat, so this is part of the purchase, not a setting. */
+.seats {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.35rem 0 0.6rem;
+  flex-wrap: wrap;
+}
+
+.seats__label {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+}
+
+.seats__input {
+  width: 5rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 6px);
+  background: var(--surface-2, var(--surface));
+  color: var(--text);
+  font: inherit;
+}
+
+.seats__input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* The running total, so the seat count is tied to a number the customer will recognise. */
+.seats__total {
+  margin-left: auto;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
