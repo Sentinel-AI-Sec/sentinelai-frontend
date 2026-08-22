@@ -86,13 +86,13 @@ describe('PricingPage', () => {
   it('derives the annual saving from the prices instead of asserting one', () => {
     // A hardcoded "save 20%" beside prices that no longer divide that way is the classic
     // pricing-page lie, and it is the kind nobody notices for months.
-    const team = PLANS.find((plan) => plan.id === 'team')!;
-    const saving = annualSavingPercent(team);
-
-    expect(saving).toBe(
-      Math.round(((team.monthly.amount! - team.annual.amount!) / team.monthly.amount!) * 100),
+    const savings = PLANS.map(annualSavingPercent).filter(
+      (saving): saving is number => saving != null && saving > 0,
     );
-    expect(render().componentInstance.annualSaving()).toBe(saving);
+
+    // The smallest, not the largest: the badge sits above every row, so it has to be true of
+    // every row. With one paid tier these were the same number; with three they are not.
+    expect(render().componentInstance.annualSaving()).toBe(Math.min(...savings));
   });
 
   it('switches the displayed price with the billing period', () => {
@@ -107,11 +107,13 @@ describe('PricingPage', () => {
   });
 
   it('offers checkout only for the tiers that have a listed price', () => {
-    // Enterprise is priced by conversation and Developer comes with the account, so neither is
-    // something this flow can start. Whether the deployment actually sells Team at a given
-    // cadence is the API's answer, not this bundle's — it holds the price table.
+    // Enterprise is priced by conversation and Free comes with the account, so neither is
+    // something this flow can start. Whether the deployment actually sells a given tier at a
+    // given cadence is the API's answer, not this bundle's — it holds the price table.
+    const notSoldHere = ['free', 'enterprise'];
+
     for (const plan of PLANS) {
-      const buyable = plan.id === 'team';
+      const buyable = !notSoldHere.includes(plan.id);
       expect(isPurchasable(plan, 'monthly')).toBe(buyable);
       expect(isPurchasable(plan, 'annual')).toBe(buyable);
     }

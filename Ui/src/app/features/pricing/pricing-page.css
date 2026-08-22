@@ -33,10 +33,16 @@
 
 /* ---- Plan cards ---------------------------------------------------------------------------- */
 
+/*
+ * Five tiers, not three. 18rem apiece needed 90rem plus gaps and so wrapped to an unbalanced
+ * 4 + 1 inside the 92rem page; 15rem lets all five sit on one row on a desktop and still wrap
+ * cleanly below that. auto-fit rather than a fixed count so the row rebalances on its own if the
+ * ladder ever gains or loses a rung.
+ */
 .plans {
   display: grid;
-  gap: 1.25rem;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
   align-items: stretch;
 }
 
@@ -44,8 +50,8 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 1.1rem;
-  padding: 1.75rem 1.5rem;
+  gap: 1rem;
+  padding: 1.5rem 1.25rem;
   background: var(--surface);
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-xl);
@@ -273,4 +279,10 @@
 
 .closer h2 {
   margin-bottom: 0.4rem;
+}
+
+/* The diagram is the widest thing on the page and wants breathing room, not a tight card. */
+.pricing__diagram {
+  padding: 1.5rem 1.25rem 1.25rem;
+  margin-bottom: 0.5rem;
 }

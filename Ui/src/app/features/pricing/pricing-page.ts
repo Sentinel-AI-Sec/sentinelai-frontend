@@ -8,11 +8,13 @@ import {
   NOTHING_CHARGED,
   billingErrorMessage,
 } from '../../core/billing/checkout-error';
+import { ChainIllustration } from '../../shared/chain-illustration/chain-illustration';
 import {
   BillingPeriod,
   Plan,
   PLANS,
   annualSavingPercent,
+  guaranteedAnnualSaving,
   isPurchasable,
   priceFor,
 } from '../../core/billing/plans';
@@ -41,7 +43,7 @@ interface Faq {
 @Component({
   selector: 'app-pricing-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink],
+  imports: [RouterLink, ChainIllustration],
   templateUrl: './pricing-page.html',
   styleUrl: './pricing-page.css',
 })
@@ -61,15 +63,12 @@ export class PricingPage {
   readonly billingEnabled = this.billing.enabled;
 
   /**
-   * The saving shown on the annual toggle, taken from whichever plan actually has both prices.
-   * Computed rather than written down so it cannot drift away from the numbers beside it.
+   * The saving shown on the annual toggle: the smallest one any paid plan offers, so the badge is
+   * true of every row beneath it. Computed rather than written down so it cannot drift away from
+   * the numbers beside it.
    */
   readonly annualSaving = computed(() => {
-    for (const plan of this.plans) {
-      const saving = annualSavingPercent(plan);
-      if (saving != null && saving > 0) return saving;
-    }
-    return null;
+    return guaranteedAnnualSaving();
   });
 
   readonly faqs: Faq[] = [

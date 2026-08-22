@@ -140,7 +140,7 @@ export class BillingPage {
   readonly currentPlan = computed<Plan | null>(() => {
     const sub = this.subscription();
     if (!sub) return null;
-    return planById(sub.plan_id) ?? planById('developer');
+    return planById(sub.plan_id) ?? planById('free');
   });
 
   readonly status = computed<SubscriptionStatus>(() => this.subscription()?.status ?? 'none');

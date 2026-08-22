@@ -62,7 +62,7 @@ describe('BillingPage', () => {
     const fixture = render({ getSubscription: () => of(onFree) }, 'success');
     const page = fixture.componentInstance;
 
-    expect(page.currentPlan()?.id).toBe('developer');
+    expect(page.currentPlan()?.id).toBe('free');
     expect(page.status()).toBe('none');
 
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';

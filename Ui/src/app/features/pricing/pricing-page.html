@@ -36,6 +36,15 @@
     </div>
   </header>
 
+  <!--
+    The diagram before the prices, deliberately. A visitor who has not understood what a chain is
+    cannot tell what the tiers differ on, and "Red/Blue debate" in a feature list means nothing
+    until you have seen the thing it argues about.
+  -->
+  <section class="card card--sunken pricing__diagram">
+    <app-chain-illustration />
+  </section>
+
   @if (!billingEnabled) {
     <p class="gate" role="note">
       <span class="ms ms--sm" aria-hidden="true">construction</span>

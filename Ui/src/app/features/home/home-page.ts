@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 
 import { Auth } from '../../core/auth/auth';
+import { ChainIllustration } from '../../shared/chain-illustration/chain-illustration';
 import { ProjectDto, ProjectsApi } from '../../core/api/projects-api';
 import { Recents } from '../../core/history/recents';
 import { environment } from '../../core/config/environment';
@@ -30,7 +31,7 @@ interface Stage {
 @Component({
   selector: 'app-home-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink, DatePipe],
+  imports: [FormsModule, RouterLink, DatePipe, ChainIllustration],
   templateUrl: './home-page.html',
   styleUrl: './home-page.css',
 })

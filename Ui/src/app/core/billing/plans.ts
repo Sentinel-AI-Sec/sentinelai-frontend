@@ -7,6 +7,12 @@
  * through templates — a price that appears in three templates will eventually disagree with
  * itself, and the copy a customer read is the one they will hold you to.
  *
+ * **The limits here are enforced server-side**, by
+ * `SentinelAI.Application/Abstractions/Billing/PlanEntitlements.cs`. That file is the authority
+ * and this one is the shop window; `PlanEntitlementCatalogTests` pins the numbers on that side so
+ * the two drifting apart shows up as a failing test rather than as a customer who read "20 scans a
+ * day", paid, and was refused at 10.
+ *
  * **There are deliberately no Stripe Price ids here.** An earlier draft carried them, on the
  * grounds that they are public identifiers and safe to commit — which is true, and beside the
  * point. The backend has to hold the same table anyway, because a price id arriving from a
@@ -29,13 +35,16 @@ export type PlanAction =
   /** Priced by conversation, not by card. */
   | 'contact';
 
+/** The plan ids, matching `PlanEntitlementCatalog` on the server. */
+export type PlanId = 'free' | 'pro' | 'max' | 'team' | 'enterprise';
+
 export interface PlanPrice {
   /** Display amount per seat per month, in {@link Plan.currency}. Null for "Custom". */
   amount: number | null;
 }
 
 export interface Plan {
-  id: 'developer' | 'team' | 'enterprise';
+  id: PlanId;
   name: string;
   /** One line on who it is for. */
   blurb: string;
@@ -44,14 +53,32 @@ export interface Plan {
   annual: PlanPrice;
   action: PlanAction;
   cta: string;
+
+  /**
+   * Scans per day this plan allows. Null means unlimited.
+   *
+   * Held as a number rather than only as prose in {@link features}, because the billing screen
+   * shows usage against it — "1 of 2 scans used today" — and a limit parsed back out of a
+   * sentence is a limit that breaks when the sentence is reworded.
+   */
+  scansPerDay: number | null;
+
+  /** Seats included before any more are bought. */
+  seats: number;
+
+  /** Whether the plan is sold per seat, which changes how the price reads. */
+  perSeat?: boolean;
+
   /** Rendered with a tick. */
   features: string[];
+
   /**
    * Rendered with a cross, and deliberately so. A pricing table that only lists what a tier
    * *has* makes every tier look complete; naming the ceiling is what makes the tier above it
    * an honest offer rather than an upsell.
    */
   limits?: string[];
+
   /** The one tier the table recommends. Exactly one, or none. */
   featured?: boolean;
 }
@@ -86,42 +113,101 @@ export function isPurchasable(plan: Plan, period: BillingPeriod): boolean {
   return plan.action === 'checkout' && priceFor(plan, period).amount !== null;
 }
 
+/**
+ * The saving a customer is guaranteed on any paid plan, for the annual toggle's badge.
+ *
+ * The *smallest* of the per-plan savings, not the largest. With one paid tier the two were the
+ * same number and the distinction did not arise; with three they differ, and a badge showing the
+ * best of them is a promise that two thirds of the table does not keep. Understating is the only
+ * direction that is true of every row it sits above.
+ */
+export function guaranteedAnnualSaving(): number | null {
+  const savings = PLANS.map(annualSavingPercent).filter((p): p is number => p != null && p > 0);
+  return savings.length > 0 ? Math.min(...savings) : null;
+}
+
 export const PLANS: readonly Plan[] = [
   {
-    id: 'developer',
-    name: 'Developer',
-    blurb: 'For solo builders and open-source maintainers.',
+    id: 'free',
+    name: 'Free',
+    blurb: 'For trying SentinelAI on a single repository.',
     currency: 'USD',
     monthly: { amount: 0 },
     annual: { amount: 0 },
     action: 'included',
     cta: 'Included with your account',
+    scansPerDay: 2,
+    seats: 1,
     features: [
-      'Up to 5 repositories',
+      '2 scans per day',
+      '1 repository',
       'Dependency, code and IaC findings',
       'Findings and resource graph per scan',
-      'Draft audits retained for 30 days',
+      'Draft audits retained for 7 days',
     ],
-    limits: ['No Red/Blue debate — findings are not adjudicated into chains'],
+    // The free tier's ceiling is the product's whole thesis, so it is named rather than implied:
+    // without the debate there are candidate chains and no adjudication of them.
+    limits: ['No Red/Blue debate — chains are not adjudicated'],
+  },
+  {
+    id: 'pro',
+    name: 'Pro',
+    blurb: 'For a developer securing their own projects.',
+    currency: 'USD',
+    // Per month. The annual figure is the monthly-equivalent of the annual price, which is how
+    // it is displayed — the customer is charged 12x this, once.
+    monthly: { amount: 29 },
+    annual: { amount: 23 },
+    action: 'checkout',
+    cta: 'Upgrade to Pro',
+    scansPerDay: 20,
+    seats: 1,
+    features: [
+      '20 scans per day',
+      'Up to 5 repositories',
+      'Red/Blue/Reporter debate on every scan',
+      'Cross-layer exploit chains with confidence tiers',
+      'Corpus-cited draft audits',
+      'Audits retained for 30 days',
+    ],
+  },
+  {
+    id: 'max',
+    name: 'Max',
+    blurb: 'For heavy CI/CD use across a whole estate.',
+    currency: 'USD',
+    monthly: { amount: 99 },
+    annual: { amount: 79 },
+    action: 'checkout',
+    cta: 'Upgrade to Max',
+    featured: true,
+    scansPerDay: 100,
+    seats: 1,
+    features: [
+      '100 scans per day',
+      'Unlimited repositories',
+      'Priority in the scan queue',
+      'Everything in Pro',
+      'Audits retained for a year',
+    ],
   },
   {
     id: 'team',
     name: 'Team',
-    blurb: 'For a security team running SentinelAI across CI/CD.',
+    blurb: 'For a security team sharing one estate.',
     currency: 'USD',
-    // Per seat per month. The annual figure is the monthly-equivalent of the annual price,
-    // which is how it is displayed — the customer is charged 12x this, once.
     monthly: { amount: 49 },
     annual: { amount: 39 },
     action: 'checkout',
-    cta: 'Start 14-day trial',
-    featured: true,
+    cta: 'Start with 5 seats',
+    scansPerDay: 100,
+    seats: 5,
+    perSeat: true,
     features: [
-      'Unlimited repositories and pipelines',
-      'Red/Blue/Reporter debate on every scan',
-      'Cross-layer exploit chains with confidence tiers',
-      'Corpus-cited draft audits',
-      'Unlimited audit retention',
+      'Everything in Max, per seat',
+      '5 seats included, add more at any time',
+      'Shared projects and audit history',
+      'Role-based access — admin, analyst, viewer',
     ],
   },
   {
@@ -133,7 +219,10 @@ export const PLANS: readonly Plan[] = [
     annual: { amount: null },
     action: 'contact',
     cta: 'Talk to us',
+    scansPerDay: null,
+    seats: 0,
     features: [
+      'Unlimited scans',
       'Private or air-gapped deployment',
       'Bring your own model endpoint',
       'SSO and per-tenant retention policy',
@@ -143,5 +232,15 @@ export const PLANS: readonly Plan[] = [
 ];
 
 export function planById(id: string | null | undefined): Plan | null {
-  return PLANS.find((plan) => plan.id === id) ?? null;
+  if (id == null) return null;
+
+  const wanted = id.trim().toLowerCase();
+
+  // `developer` is the id the first tier shipped under, before the ladder gained Pro and Max. It
+  // is still written on existing tenants and on any subscription created while it was the name,
+  // and the server still resolves it — so resolving it here too is what stops those accounts
+  // rendering as "no plan" on a screen that is telling them what they pay for.
+  const id_ = wanted === 'developer' ? 'free' : wanted;
+
+  return PLANS.find((plan) => plan.id === id_) ?? null;
 }

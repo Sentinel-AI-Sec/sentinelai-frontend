@@ -102,6 +102,22 @@
     </div>
   </div>
 
+  <!--
+    What a scan produces, for the reader who has not opened one yet. The console is where
+    somebody lands before their first scan has finished, and a screen of empty counters does not
+    explain what is being counted.
+  -->
+  <section class="card card--sunken">
+    <div class="card__head">
+      <h2 class="card__title">What a scan produces</h2>
+      <p class="card__sub">
+        Findings from every layer, joined into ordered chains that each carry how far they can be
+        trusted. Open any completed scan to see this drawn from its own graph.
+      </p>
+    </div>
+    <app-chain-illustration [detailed]="false" />
+  </section>
+
   <div class="split split--main">
     <div class="stack">
       <!-- The ids arrive in the pull-request comment SentinelAI posts, which is why this is the
