@@ -149,6 +149,17 @@
       </div>
     </div>
 
+    @if (simulated()) {
+      <p class="gate" role="status">
+        <span class="ms ms--sm" aria-hidden="true">science</span>
+        <span>
+          This deployment simulates payments. Upgrading here runs the real checkout and webhook
+          flow so the product can be demonstrated end to end — but no card is asked for and
+          nothing is ever charged.
+        </span>
+      </p>
+    }
+
     @if (status() === 'past_due') {
       <p class="error" role="alert">
         <span class="ms ms--sm" aria-hidden="true">warning</span>

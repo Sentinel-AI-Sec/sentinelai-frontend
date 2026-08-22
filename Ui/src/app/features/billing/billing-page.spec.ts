@@ -33,6 +33,7 @@ const onFree: SubscriptionView = {
   current_period_end: null,
   cancel_at_period_end: false,
   trial_end: null,
+  provider: 'stripe',
 };
 
 describe('BillingPage', () => {

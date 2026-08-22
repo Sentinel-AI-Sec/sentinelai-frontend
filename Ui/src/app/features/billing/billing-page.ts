@@ -137,6 +137,14 @@ export class BillingPage {
   }
 
   /** The plan the tenant is on. Null resolves to the free tier, which is what an account starts on. */
+  /**
+   * True when this deployment simulates payments rather than taking them.
+   *
+   * Shown on the page rather than left to a log line: a customer -- or a demo audience -- looking
+   * at an "active" subscription is entitled to know whether any money moved.
+   */
+  readonly simulated = computed(() => this.subscription()?.provider === 'simulated');
+
   readonly currentPlan = computed<Plan | null>(() => {
     const sub = this.subscription();
     if (!sub) return null;

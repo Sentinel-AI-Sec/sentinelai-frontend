@@ -67,6 +67,15 @@ export interface SubscriptionView {
   cancel_at_period_end: boolean;
   /** ISO. Null unless `status` is `trialing`. */
   trial_end: string | null;
+
+  /**
+   * Which processor is behind this: `stripe`, `simulated` or `none`.
+   *
+   * On the wire because the difference between "this customer paid" and "this customer clicked a
+   * button on a page that took no card" is the entire meaning of the record. A screen that cannot
+   * tell them apart will confidently state the wrong one, so this one says which.
+   */
+  provider: 'stripe' | 'simulated' | 'none';
 }
 
 /** What a session-creating endpoint returns: somewhere to send the browser. */
