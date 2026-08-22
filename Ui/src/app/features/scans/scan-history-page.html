@@ -116,6 +116,16 @@
                     Findings
                   </a>
                   <!--
+                    Chains hang off the scan, so this works even where retention was declined and
+                    there is no report to reach them through.
+                  -->
+                  <a
+                    class="btn btn--ghost btn--sm"
+                    [routerLink]="['/scans', scan.scan_job_id, 'chains']"
+                  >
+                    Chains
+                  </a>
+                  <!--
                     The only route to an audit that does not involve typing a GUID: a report is
                     addressed by REPORT id, and this list is the one place that knows the mapping.
 

@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 
 /**
- * Sub-navigation between the three views of one scan job.
+ * Sub-navigation between the four views of one scan job.
  *
  * There is deliberately no "Report" tab. A report is addressed by its own id, which the audit
  * stage mints and which is not the scan job id — a tab that guessed `/reports/{scanJobId}`
@@ -30,6 +30,14 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
       >
         <span class="ms ms--sm" aria-hidden="true">bug_report</span>
         Findings
+      </a>
+      <a
+        class="tab"
+        [routerLink]="['/scans', scanJobId(), 'chains']"
+        routerLinkActive="is-active"
+      >
+        <span class="ms ms--sm" aria-hidden="true">route</span>
+        Chains
       </a>
       <a
         class="tab"
