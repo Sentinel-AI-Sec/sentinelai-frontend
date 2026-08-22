@@ -174,8 +174,22 @@
         </p>
       }
 
+      <!--
+        The diagram first, then the card. The dashboard and the pricing page teach this drawing —
+        layer bands, typed nodes, tier-coloured joins — with a hand-authored illustration; this is
+        the same grammar with the scan's own data behind it, so a reader is not taught the product
+        twice. The card underneath keeps what a picture cannot carry: per-hop verdicts, evidence,
+        and the ATT&CK technique.
+      -->
       @for (chain of liveChains(); track chain.id) {
-        <app-chain-card [chain]="chain" [findingsById]="findingsById()" />
+        <div class="chain-block">
+          <app-chain-diagram
+            [chain]="chain"
+            [nodesByKey]="nodesByKey()"
+            [findingsById]="findingsById()"
+          />
+          <app-chain-card [chain]="chain" [findingsById]="findingsById()" />
+        </div>
       }
     </section>
 
@@ -193,7 +207,14 @@
         </p>
 
         @for (chain of rejectedChains(); track chain.id) {
-          <app-chain-card [chain]="chain" [findingsById]="findingsById()" />
+          <div class="chain-block">
+            <app-chain-diagram
+              [chain]="chain"
+              [nodesByKey]="nodesByKey()"
+              [findingsById]="findingsById()"
+            />
+            <app-chain-card [chain]="chain" [findingsById]="findingsById()" />
+          </div>
         }
       </section>
     }

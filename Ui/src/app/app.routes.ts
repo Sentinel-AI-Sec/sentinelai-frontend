@@ -68,6 +68,14 @@ export const routes: Routes = [
     title: 'Scan ops · SentinelAI',
   },
   {
+    // Chains belong to the SCAN, not to a report — so they are reachable even where retention was
+    // declined and no audit was kept. Until this route existed they were not.
+    path: 'scans/:id/chains',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/scans/chains-page').then((m) => m.ChainsPage),
+    title: 'Exploit chains · SentinelAI',
+  },
+  {
     path: 'scans/:id/graph',
     canActivate: [authGuard],
     loadComponent: () =>
