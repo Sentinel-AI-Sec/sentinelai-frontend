@@ -42,6 +42,7 @@ npm run build     # production build
 | `/login`, `/register` | The auth canvas. Everything else is behind a guard. |
 | `/` | Console: registered projects, what this browser has opened, and the jump-in-by-id entry points. |
 | `/projects` | The repositories this tenant may scan, with the project id built to be copied. |
+| `/setup` | Set up CI: the three values `sentinelai.yml` reads, collected in one place — the API URL, a project id, and a machine token minted on the spot. |
 | `/scans/new` | Submits a bundle — the multipart upload the GitHub Action normally performs. |
 | `/scans/:id/ops` | The pipeline: real stage/status as a stepper, and the stage runners. |
 | `/scans/:id/findings` | Every finding on a scan — server-side layer and severity filters, cursor paging. |

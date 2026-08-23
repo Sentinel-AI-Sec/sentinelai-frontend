@@ -4,9 +4,26 @@
  */
 .filters {
   display: flex;
-  align-items: flex-end;
-  gap: 0.75rem;
+  /*
+   * Spelled out rather than left to the initial value. `.card` is itself a flex container in
+   * `column`, and although `flex-direction` does not inherit — this row was never actually being
+   * stacked — a nested flex container whose direction matters is worth stating, because the two
+   * declarations sit next to each other in the inspector and the reader should not have to
+   * remember which properties cascade.
+   */
+  flex-direction: row;
   flex-wrap: wrap;
+  /*
+   * Centred, and stretch rather than bottom-aligned.
+   *
+   * `flex-end` lined the controls up by their bottom edges, which sounds right and is not: each
+   * `.field` is a label stacked over a select, so bottom-aligning aligns the selects while
+   * leaving the two labels at different heights whenever one wraps. Letting the fields stretch
+   * keeps label-over-control intact in both, and the row reads as one group.
+   */
+  justify-content: center;
+  align-items: normal;
+  gap: 0.75rem;
 }
 
 .filters .field {
