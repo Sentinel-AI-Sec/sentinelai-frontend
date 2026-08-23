@@ -109,12 +109,53 @@
           <span class="legend__item"><i class="swatch swatch--infra"></i>infrastructure</span>
         </span>
       </div>
+
+      <div class="zoom" role="group" aria-label="Zoom">
+        <button
+          type="button"
+          class="icon-btn"
+          [disabled]="!canZoomOut()"
+          (click)="zoomOut()"
+          aria-label="Zoom out"
+          title="Zoom out"
+        >
+          <span class="ms ms--sm" aria-hidden="true">remove</span>
+        </button>
+
+        <!--
+          The percentage is a button, not a label: once you have scrolled around a magnified
+          graph, getting back to seeing all of it is the thing you want most, and hunting for a
+          separate reset control is the thing you do least willingly.
+        -->
+        <button
+          type="button"
+          class="zoom__level"
+          [disabled]="zoom() === 1"
+          (click)="resetZoom()"
+          title="Fit the whole graph"
+        >
+          {{ zoomPercent() }}%
+        </button>
+
+        <button
+          type="button"
+          class="icon-btn"
+          [disabled]="!canZoomIn()"
+          (click)="zoomIn()"
+          aria-label="Zoom in"
+          title="Zoom in"
+        >
+          <span class="ms ms--sm" aria-hidden="true">add</span>
+        </button>
+      </div>
     </div>
 
     <div class="split split--main">
-      <div class="canvas grid-paper">
+      <div class="canvas grid-paper" [class.canvas--zoomed]="zoom() > 1">
         <svg
           class="canvas__svg"
+          [style.width.%]="zoomPercent()"
+          [style.height.%]="zoomPercent()"
           [attr.viewBox]="'0 0 ' + layout().width + ' ' + layout().height"
           preserveAspectRatio="xMidYMid meet"
           role="img"

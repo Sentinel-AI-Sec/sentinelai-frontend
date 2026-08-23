@@ -382,3 +382,47 @@
   grid-column: 2;
   justify-self: start;
 }
+
+/* ---- Zoom ---------------------------------------------------------------------------------- */
+
+.zoom {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/*
+ * The current level, and the way back to seeing everything. Fixed width so stepping through
+ * 100 → 125 → 150 does not shuffle the two buttons either side of it.
+ */
+.zoom__level {
+  min-width: 3.5rem;
+  padding: 0.25rem 0.35rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm, 6px);
+  background: none;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  cursor: pointer;
+}
+
+.zoom__level:hover:not(:disabled) {
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.zoom__level:disabled {
+  cursor: default;
+  color: var(--text-mute);
+}
+
+/*
+ * Only scrolls once there is something outside the box. At 100% the SVG is fitted and a scroll
+ * container would show phantom scrollbars on a drawing that has nowhere to go.
+ */
+.canvas--zoomed {
+  overflow: auto;
+}

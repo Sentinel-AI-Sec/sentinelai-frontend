@@ -129,6 +129,51 @@ export class ResourceGraphPage {
   readonly typeIcon = TypeIcon;
   readonly nodeRadius = NodeRadius;
 
+  /**
+   * How far the drawing is scaled up from "fit the box".
+   *
+   * 1 is the whole graph fitted to the canvas, which is what this screen has always shown and
+   * what it still opens at. Above 1 the SVG is rendered larger than its container and the canvas
+   * scrolls, so zooming in never puts a node somewhere unreachable — the alternative, shrinking
+   * the viewBox around the centre, magnifies the middle and quietly hides the edges.
+   *
+   * Below 1 is deliberately not offered. Fitted is already the whole graph; "smaller than
+   * everything" is a worse view of the same information, and on a 69-node graph the labels are
+   * unreadable well before it would help.
+   */
+  readonly zoom = signal(1);
+
+  /** Bounds and step. 3x is where a 26px node fills a comfortable fraction of the canvas. */
+  private static readonly MinZoom = 1;
+  private static readonly MaxZoom = 3;
+  private static readonly ZoomStep = 0.25;
+
+  readonly zoomPercent = computed(() => Math.round(this.zoom() * 100));
+  readonly canZoomIn = computed(() => this.zoom() < ResourceGraphPage.MaxZoom);
+  readonly canZoomOut = computed(() => this.zoom() > ResourceGraphPage.MinZoom);
+
+  zoomIn(): void {
+    this.setZoom(this.zoom() + ResourceGraphPage.ZoomStep);
+  }
+
+  zoomOut(): void {
+    this.setZoom(this.zoom() - ResourceGraphPage.ZoomStep);
+  }
+
+  /** Back to the whole graph. Worth its own control: scrolling back to "fitted" by hand is fiddly. */
+  resetZoom(): void {
+    this.setZoom(1);
+  }
+
+  private setZoom(value: number): void {
+    const clamped = Math.min(
+      ResourceGraphPage.MaxZoom,
+      Math.max(ResourceGraphPage.MinZoom, Math.round(value * 100) / 100),
+    );
+    this.zoom.set(clamped);
+  }
+
+
   constructor() {
     effect(() => {
       const id = this.id();
