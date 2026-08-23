@@ -78,6 +78,9 @@ export class App {
   protected readonly navItems: NavItem[] = [
     { label: 'Dashboard', icon: 'space_dashboard', link: '/', exact: true },
     { label: 'Projects', icon: 'folder_open', link: '/projects' },
+    // Onboarding, and deliberately in the everyday nav rather than tucked behind Projects: the
+    // machine token is not stored anywhere, so this is a screen people come back to.
+    { label: 'Set up CI', icon: 'rocket_launch', link: '/setup' },
     // Reviewing, not starting. Scans come from the Action; /scans/new still exists for driving
     // the pipeline by hand, but it is not an everyday surface and is gated on admin.
     { label: 'Scans', icon: 'history', link: '/scans' },
@@ -108,6 +111,9 @@ export class App {
     switch (parts[0]) {
       case 'projects':
         return [{ label: 'Projects' }];
+
+      case 'setup':
+        return [{ label: 'Set up CI' }];
 
       case 'debate':
         return [{ label: 'Debate playground' }];

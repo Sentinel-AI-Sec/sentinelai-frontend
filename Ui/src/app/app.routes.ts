@@ -45,6 +45,15 @@ export const routes: Routes = [
     title: 'Projects · SentinelAI',
   },
   {
+    // The three values a repository needs before the Action can scan it: the API URL, a project
+    // id, and a machine token. Sits beside /projects rather than under it because two of the
+    // three are not about any one project.
+    path: 'setup',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/setup/setup-page').then((m) => m.SetupPage),
+    title: 'Set up CI · SentinelAI',
+  },
+  {
     // Declared before 'scans/new' only for readability — the two cannot collide, since every
     // route below is matched on segment count and literal first.
     path: 'scans',
