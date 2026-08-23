@@ -47,10 +47,16 @@
   justify-content: flex-start;
 }
 
+/*
+ * The Reporter answers in labelled lines now (CHAIN, SEVERITY, CONFIDENCE, ...), so the line
+ * breaks it wrote are structure rather than wrapping, and collapsing them runs six fields into
+ * one unreadable sentence.
+ */
 .summary {
   font-size: 0.92rem;
   line-height: 1.7;
   color: var(--text-dim);
+  white-space: pre-wrap;
 }
 
 /* ---- Integrity warnings -------------------------------------------------------------------- */
@@ -230,6 +236,267 @@
 
 .turn[data-speaker='orchestrator'] .turn__body {
   background: var(--surface-2);
+}
+
+/* ---- Inside a turn --------------------------------------------------------------------------
+ *
+ * A turn is now a small document rather than a paragraph: an opening line, the chain it
+ * asserts, the fields it grades, and — folded away — the text all of that was read out of. The
+ * ordering is deliberate. The chain comes first because it is what a reader is here to check,
+ * and the raw text comes last because reaching for it should be a decision, not an obstacle.
+ */
+
+.turn__headline {
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--text);
+  margin-bottom: 0.6rem;
+}
+
+.turn__notes {
+  margin: 0.6rem 0 0;
+  padding-left: 1.05rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.83rem;
+  line-height: 1.65;
+  color: var(--text-dim);
+}
+
+/* ---- The chain ------------------------------------------------------------------------------
+ *
+ * Hops are numbered down the left and joined by a rule, so the path reads as one sequence even
+ * when a single hop grows to three lines of evidence. The rule stops at the last hop rather
+ * than trailing past it, which is what stops the chain looking like it continues off-screen.
+ */
+
+.hops {
+  list-style: none;
+  margin: 0.65rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.hop {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.hop:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 10px;
+  top: 22px;
+  bottom: -0.55rem;
+  width: 1px;
+  background: var(--border-soft);
+}
+
+.hop__order {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  width: 21px;
+  height: 21px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: var(--text-mute);
+  background: var(--surface-3);
+  border: 1px solid var(--border-soft);
+}
+
+.hop__main {
+  flex: 1;
+  min-width: 0;
+  padding-bottom: 0.15rem;
+}
+
+.hop__edge {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+/*
+ * The graph's own node key, in mono because that is what it is — an identifier that has to
+ * match the database exactly, not a label someone chose for reading.
+ */
+.hop__node {
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  color: var(--text);
+  word-break: break-all;
+}
+
+.hop__arrow {
+  color: var(--text-mute);
+  font-size: 0.8rem;
+}
+
+.hop__relation {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+  color: var(--accent-soft);
+}
+
+.hop__tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+}
+
+/* The N-labels the agents actually wrote, kept small: needed to read the raw turn, not to
+ * read the finding. */
+.hop__ref {
+  font-size: 0.66rem;
+  color: var(--text-mute);
+}
+
+.hop__evidence {
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--text-dim);
+}
+
+/*
+ * A hop the graph does not back must be impossible to skim past — this is the one place the
+ * product could be presenting an invented edge as a finding, so it gets a filled panel rather
+ * than a footnote, exactly like the integrity block above.
+ */
+.hop__warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  margin-top: 0.4rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.74rem;
+  line-height: 1.5;
+  color: var(--tier-inferred);
+  background: rgba(255, 194, 102, 0.1);
+  border: 1px solid rgba(255, 194, 102, 0.3);
+}
+
+.hop[data-status='reversed'] .hop__warning,
+.hop[data-status='unrecognized'] .hop__warning {
+  color: var(--sev-critical);
+  background: rgba(255, 180, 171, 0.1);
+  border-color: rgba(255, 180, 171, 0.35);
+}
+
+.hop[data-status='reversed'] .hop__order,
+.hop[data-status='unrecognized'] .hop__order {
+  color: var(--sev-critical);
+  border-color: rgba(255, 180, 171, 0.5);
+}
+
+/* ---- Graded fields --------------------------------------------------------------------------
+ *
+ * SEVERITY, CONFIDENCE, NEXT and the rest, as a definition list — the label is the question a
+ * reader arrived with, and putting them in a column makes the turn scannable for the one they
+ * came for.
+ */
+
+.facts {
+  margin: 0.65rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.facts__row {
+  display: grid;
+  grid-template-columns: minmax(5.5rem, auto) 1fr;
+  gap: 0.6rem;
+  align-items: baseline;
+}
+
+.facts__row dt {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+}
+
+.facts__row dd {
+  margin: 0;
+  font-size: 0.83rem;
+  line-height: 1.6;
+  color: var(--text-dim);
+  word-break: break-word;
+}
+
+@media (max-width: 40rem) {
+  .facts__row {
+    grid-template-columns: 1fr;
+    gap: 0.1rem;
+  }
+}
+
+/* ---- Blue's closing verdict ------------------------------------------------------------------ */
+
+.turn__verdict {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.7rem;
+  padding-top: 0.6rem;
+  border-top: 1px dashed var(--border-soft);
+  font-size: 0.78rem;
+}
+
+/* ---- The raw turn ---------------------------------------------------------------------------
+ *
+ * Folded, never removed. Everything above it is a reading of this text, and a reading that
+ * cannot be checked against the original is one a reader has to take on faith.
+ */
+
+.turn__raw {
+  margin-top: 0.7rem;
+}
+
+.turn__raw summary {
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+  transition: color 0.15s var(--ease);
+}
+
+.turn__raw summary:hover {
+  color: var(--text-dim);
+}
+
+.turn__raw .turn__content {
+  margin-top: 0.5rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-deep);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  line-height: 1.65;
 }
 
 @media (max-width: 62rem) {

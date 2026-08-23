@@ -17,10 +17,14 @@
 
   <p class="chain__summary">
     {{ hops().length }} step{{ hops().length === 1 ? '' : 's' }} ·
-    @if (fullyValidated()) {
-      <span class="ok">Blue validated every step</span>
+    @if (!adjudicated()) {
+      <span class="mute">{{ summary() }}</span>
+    } @else if (refutedCount() > 0) {
+      <span class="warn">{{ summary() }}</span>
+    } @else if (confirmedCount() === hops().length) {
+      <span class="ok">{{ summary() }}</span>
     } @else {
-      <span class="warn"> Blue validated {{ validatedCount() }} of {{ hops().length }} steps </span>
+      <span class="warn">{{ summary() }}</span>
     }
     · weakest join is <strong>{{ chain().min_confidence }}</strong>
   </p>
@@ -40,17 +44,24 @@
             <span class="hop__order" aria-hidden="true">{{ item.hop.order }}</span>
             <code class="hop__node">{{ item.hop.node_key ?? 'unknown node' }}</code>
 
-            @if (item.hop.blue_validated) {
-              <span class="check check--ok" title="Blue validated this step">
-                <span class="ms ms--xs" aria-hidden="true">verified</span>
-                validated
+            <!-- Read from blue_verdict, never from blue_validated: that boolean answers four
+                 different questions with the same `false` (audit 42-A). -->
+            <span
+              class="chip"
+              [class]="'chip ' + verdictClass(item.hop.blue_verdict)"
+              [title]="verdictHint(item.hop.blue_verdict)"
+            >
+              <span class="ms ms--xs" aria-hidden="true">
+                {{
+                  item.hop.blue_verdict === 'confirmed'
+                    ? 'verified'
+                    : item.hop.blue_verdict === 'refuted'
+                      ? 'block'
+                      : 'help'
+                }}
               </span>
-            } @else {
-              <span class="check check--open" title="Blue did not validate this step">
-                <span class="ms ms--xs" aria-hidden="true">help</span>
-                unvalidated
-              </span>
-            }
+              {{ verdictLabel(item.hop.blue_verdict) }}
+            </span>
           </div>
 
           @if ($last && hops().length > 1) {
@@ -60,17 +71,21 @@
             </p>
           }
 
-          <p class="hop__technique">
-            Technique
-            <a
-              [href]="
-                'https://attack.mitre.org/techniques/' + item.hop.technique_id.replace('.', '/')
-              "
-              target="_blank"
-              rel="noopener"
-              >{{ item.hop.technique_id }}</a
-            >
-          </p>
+          <!-- An empty technique_id is the normal answer, not a missing value. Linking it
+               anyway produces a link to MITRE's index wearing the label of a specific
+               technique, which is what audit 42-A found here. -->
+          @if (hasTechnique(item.hop)) {
+            <p class="hop__technique">
+              Technique
+              <a [href]="techniqueUrl(item.hop)" target="_blank" rel="noopener">
+                {{ item.hop.technique_id }}
+              </a>
+            </p>
+          } @else {
+            <p class="hop__technique hop__technique--none">
+              No ATT&amp;CK technique was grounded for this step.
+            </p>
+          }
 
           @if (item.finding; as finding) {
             <div class="evidence">

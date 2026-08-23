@@ -1,0 +1,288 @@
+/* Layout local to the pricing screen; the rest comes from the global system. */
+
+.pricing__head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+  text-align: center;
+  padding: 1.5rem 0 0.5rem;
+}
+
+.pricing__head h1 {
+  font-size: clamp(1.75rem, 4vw, 2.6rem);
+  max-width: 20ch;
+}
+
+.pricing__head .lede {
+  text-align: center;
+}
+
+.pricing__toggle {
+  margin-top: 0.5rem;
+}
+
+.pricing__saving {
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: var(--radius-pill);
+  background: rgba(107, 216, 203, 0.16);
+  color: var(--tier-certain);
+  font-size: 0.62rem;
+}
+
+/* ---- Plan cards ---------------------------------------------------------------------------- */
+
+/*
+ * Five tiers, not three. 18rem apiece needed 90rem plus gaps and so wrapped to an unbalanced
+ * 4 + 1 inside the 92rem page; 15rem lets all five sit on one row on a desktop and still wrap
+ * cleanly below that. auto-fit rather than a fixed count so the row rebalances on its own if the
+ * ladder ever gains or loses a rung.
+ */
+.plans {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  align-items: stretch;
+}
+
+.plan {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.5rem 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-xl);
+}
+
+/* The recommended tier is lifted rather than recoloured, so the emphasis survives greyscale. */
+.plan--featured {
+  border-color: rgba(128, 131, 255, 0.45);
+  background: linear-gradient(160deg, rgba(128, 131, 255, 0.09), var(--surface) 55%);
+  box-shadow: var(--shadow);
+}
+
+.plan__ribbon {
+  position: absolute;
+  top: -0.7rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.15rem 0.7rem;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.plan__head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.plan__name {
+  font-size: 1.05rem;
+  font-family: var(--mono);
+  letter-spacing: 0.02em;
+}
+
+.plan__blurb {
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--text-mute);
+}
+
+.plan__price {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.plan__amount {
+  font-size: 2.4rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.plan--featured .plan__amount {
+  color: var(--accent-soft);
+}
+
+.plan__unit {
+  display: flex;
+  flex-direction: column;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--text-mute);
+}
+
+.plan__billed {
+  color: var(--tier-certain);
+}
+
+.plan__features {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  flex: 1;
+}
+
+.plan__features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+.plan__tick {
+  color: var(--tier-certain);
+}
+
+.plan__limit {
+  color: var(--text-mute);
+}
+
+.plan__limit .ms {
+  color: var(--text-mute);
+}
+
+.plan__action {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.plan__blocked,
+.plan__note {
+  font-size: 0.72rem;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--text-mute);
+}
+
+/* ---- Assurance strip ------------------------------------------------------------------------ */
+
+.assurance {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  padding: 1.75rem 1.5rem;
+}
+
+.assurance__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+}
+
+.assurance__item .ms {
+  color: var(--accent-soft);
+}
+
+.assurance__item h3 {
+  font-size: 0.88rem;
+  margin-bottom: 0.3rem;
+}
+
+.assurance__item p {
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: var(--text-mute);
+}
+
+/* ---- FAQ ------------------------------------------------------------------------------------ */
+
+.faq__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.faq__item {
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.faq__item--open {
+  border-color: var(--border);
+}
+
+.faq__q {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  padding: 0.95rem 1.1rem;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.faq__q:hover {
+  background: var(--surface-2);
+}
+
+.faq__chevron {
+  color: var(--text-mute);
+  transition: transform 0.2s var(--ease);
+  flex: none;
+}
+
+.faq__item--open .faq__chevron {
+  transform: rotate(180deg);
+}
+
+.faq__a {
+  padding: 0 1.1rem 1.05rem;
+  font-size: 0.84rem;
+  line-height: 1.7;
+  color: var(--text-dim);
+  max-width: 78ch;
+}
+
+/* ---- Closer --------------------------------------------------------------------------------- */
+
+.closer {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding: 1.75rem 1.5rem;
+}
+
+.closer h2 {
+  margin-bottom: 0.4rem;
+}
+
+/* The diagram is the widest thing on the page and wants breathing room, not a tight card. */
+.pricing__diagram {
+  padding: 1.5rem 1.25rem 1.25rem;
+  margin-bottom: 0.5rem;
+}

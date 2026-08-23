@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 
 import { Auth } from '../../core/auth/auth';
+import { ChainIllustration } from '../../shared/chain-illustration/chain-illustration';
 import { ProjectDto, ProjectsApi } from '../../core/api/projects-api';
 import { Recents } from '../../core/history/recents';
 import { environment } from '../../core/config/environment';
@@ -18,21 +19,19 @@ interface Stage {
 /**
  * The console landing screen.
  *
- * What it deliberately is *not* is a fleet dashboard. Every number on a screen like this is a
- * promise that the product knows something, and the read API (SEC-40) can read one scan and one
- * report by id — it cannot enumerate them. A "247 scans this week" tile would therefore be
- * invented, and inventing it here would undo the honesty the rest of the pipeline is built to
- * preserve. So this screen shows only three things it can actually stand behind: the tenant's
- * registered projects (a real list endpoint), what this browser has opened (a local index, and
- * labelled as one), and the jump-in-by-id route the PR comment gives you.
+ * Every number on a screen like this is a promise that the product knows something. This one shows
+ * the tenant's registered projects (a real list endpoint), what this browser has opened (a local
+ * index, labelled as one), and the jump-in-by-id route the PR comment gives you.
  *
- * When a list endpoint lands, the tiles here are where it goes, and the layout already has the
- * shape for it.
+ * `GET /v1/scans` has since landed, so a fleet-wide list is no longer something the UI would have
+ * to invent — `/scans` renders it. What is still off the table is a *derived* tile: the list
+ * endpoints expose no total (see `docs/Read_API.md`), so "247 scans this week" would mean counting
+ * a page and presenting it as a population. A count of what happens to be loaded is not a count.
  */
 @Component({
   selector: 'app-home-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, RouterLink, DatePipe],
+  imports: [FormsModule, RouterLink, DatePipe, ChainIllustration],
   templateUrl: './home-page.html',
   styleUrl: './home-page.css',
 })

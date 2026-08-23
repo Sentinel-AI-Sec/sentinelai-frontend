@@ -1,0 +1,111 @@
+<div class="cd-scroll">
+  <svg
+    class="cd-svg"
+    [attr.viewBox]="viewBox()"
+    [style.min-width.rem]="nodes().length > 4 ? 48 : 30"
+    role="img"
+    [attr.aria-label]="
+      'Exploit chain of ' + nodes().length + ' steps, reaching ' + (nodes().at(-1)?.label ?? 'a resource')
+    "
+  >
+    <defs>
+      <!-- One marker per tier, because an arrowhead inherits nothing from the path it ends. -->
+      <marker
+        id="cd-arrow-certain"
+        viewBox="0 0 10 10"
+        refX="9"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto-start-reverse"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="cd-arrowhead" />
+      </marker>
+      <marker
+        id="cd-arrow-inferred"
+        viewBox="0 0 10 10"
+        refX="9"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto-start-reverse"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="cd-arrowhead cd-arrowhead--inferred" />
+      </marker>
+      <marker
+        id="cd-arrow-unresolved"
+        viewBox="0 0 10 10"
+        refX="9"
+        refY="5"
+        markerWidth="6"
+        markerHeight="6"
+        orient="auto-start-reverse"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="cd-arrowhead cd-arrowhead--unresolved" />
+      </marker>
+    </defs>
+
+    <!--
+      Layer bands, only where the scan's graph told us the layer. A chain drawn without the graph
+      loaded simply has no bands, rather than bands guessed from the shape of a node key.
+    -->
+    <g class="cd-bands" aria-hidden="true">
+      @for (band of bands(); track band.layer + '-' + band.startX) {
+        <rect
+          [attr.x]="bandX(band)"
+          y="52"
+          [attr.width]="bandWidth(band)"
+          height="116"
+          rx="14"
+          class="cd-band"
+          [class]="'cd-band cd-band--' + band.layer"
+        />
+        <text
+          [attr.x]="bandLabelX(band)"
+          y="44"
+          [class]="'cd-band-label cd-band-label--' + band.layer"
+        >
+          {{ bandLabel(band.layer) }}
+        </text>
+      }
+    </g>
+
+    <g class="cd-edges">
+      @for (edge of edges(); track $index) {
+        <path [attr.d]="edge.d" [class]="edgeClass(edge.confidence)" [attr.marker-end]="markerUrl(edge.confidence)" />
+      }
+    </g>
+
+    <g class="cd-nodes">
+      @for (node of nodes(); track node.x) {
+        <g
+          [class]="
+            'cd-node' +
+            (node.layer ? ' cd-node--' + node.layer : '') +
+            (node.isTarget ? ' cd-node--target' : '') +
+            (node.refuted ? ' cd-node--ghost' : '')
+          "
+        >
+          <!-- The halo marks what the chain claims to reach, not merely the last thing drawn. -->
+          @if (node.isTarget) {
+            <circle class="cd-node__halo" [attr.cx]="node.x" [attr.cy]="node.y" r="32" />
+          }
+
+          <circle [attr.cx]="node.x" [attr.cy]="node.y" r="26" />
+          <text class="cd-node__type" [attr.x]="node.x" [attr.y]="node.y + 5">{{ node.type }}</text>
+          <text class="cd-node__label" [attr.x]="node.x" [attr.y]="node.y + 48">{{ node.label }}</text>
+
+          @if (node.sub) {
+            <text
+              [attr.x]="node.x"
+              [attr.y]="node.y + 64"
+              [class]="'cd-node__sub' + (node.subIsFinding ? ' cd-node__sub--cwe' : '')"
+            >
+              {{ node.sub }}
+            </text>
+          }
+        </g>
+      }
+    </g>
+  </svg>
+</div>

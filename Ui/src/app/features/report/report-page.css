@@ -8,11 +8,17 @@
   opacity: 0.6;
 }
 
+/*
+ * This is the Reporter's closing turn verbatim, and it answers in labelled lines now (CHAIN,
+ * SEVERITY, CONFIDENCE, ...). Those breaks are structure, not wrapping — without pre-wrap the
+ * six fields render as one run-on sentence.
+ */
 .summary {
   font-size: 0.95rem;
   line-height: 1.7;
   color: var(--text-dim);
   max-width: 76ch;
+  white-space: pre-wrap;
 }
 
 /* ---- severity posture --------------------------------------------------------------------- */
@@ -196,4 +202,16 @@
   .page-head__actions {
     width: 100%;
   }
+}
+
+/*
+ * A chain is one thing shown two ways: the diagram says where the path goes, the card says what
+ * was established about each step. Grouping them means a reader never has to work out which card
+ * belongs to which drawing.
+ */
+.chain-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
 }

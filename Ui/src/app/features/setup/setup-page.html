@@ -1,0 +1,307 @@
+<div class="page">
+  <header class="page-head">
+    <div class="page-head__main">
+      <p class="eyebrow">
+        <span class="ms ms--sm" aria-hidden="true">rocket_launch</span>
+        Connect a repository
+      </p>
+      <h1>Set up CI</h1>
+      <p class="lede">
+        The SentinelAI Action reads three values out of the repository it runs in. Collect them
+        here, then set them on that repository — two as
+        <a href="https://docs.github.com/actions/learn-github-actions/variables" rel="noopener">
+          variables</a
+        >, one as a secret.
+      </p>
+    </div>
+
+    <div class="page-head__actions">
+      @if (complete()) {
+        <span class="chip chip--ok">
+          <span class="chip__dot" aria-hidden="true"></span>
+          all three ready
+        </span>
+      } @else {
+        <span class="chip chip--mute">{{ values().length - readyCount() }} still to fill</span>
+      }
+    </div>
+  </header>
+
+  @if (demoMode) {
+    <p class="gate" role="note">
+      <span class="ms ms--sm" aria-hidden="true">science</span>
+      <span>
+        Demo mode — the project list is a reference fixture and the token below is a shaped
+        placeholder that authenticates against nothing.
+      </span>
+    </p>
+  }
+
+  <!-- ---- 01. Pick the project ------------------------------------------------------------ -->
+
+  <section class="section">
+    <div class="section__head">
+      <h2><span class="section__num">01.</span>Pick the repository</h2>
+    </div>
+
+    @if (loadingProjects()) {
+      <div class="skeleton skeleton--card" aria-hidden="true"></div>
+    } @else if (projectsError(); as message) {
+      <p class="error" role="alert">
+        <span class="ms ms--sm" aria-hidden="true">error</span>
+        <span>{{ message }}</span>
+        <button type="button" class="btn btn--ghost btn--sm" (click)="loadProjects()">Retry</button>
+      </p>
+    } @else if (projects().length === 0) {
+      <div class="empty">
+        <span class="ms ms--xl" aria-hidden="true">folder_off</span>
+        <p>No repositories are registered for this tenant yet.</p>
+        <p class="hint">
+          A project has to exist before a scan can name one, so this is the first step.
+        </p>
+        <a class="btn btn--primary btn--sm" routerLink="/projects">
+          <span class="ms ms--sm" aria-hidden="true">add</span>
+          Register one
+        </a>
+      </div>
+    } @else {
+      <div class="card">
+        <div class="field">
+          <label for="project">Project</label>
+          <select
+            id="project"
+            name="project"
+            [ngModel]="selectedProjectId()"
+            (ngModelChange)="selectedProjectId.set($event)"
+          >
+            <option value="">Select a repository…</option>
+            @for (project of projects(); track project.projectId) {
+              <option [value]="project.projectId">{{ project.repoUrl }}</option>
+            }
+          </select>
+          <p class="field-hint">
+            The Action runs inside this repository, and the scans it uploads are filed under this
+            project.
+          </p>
+        </div>
+      </div>
+    }
+  </section>
+
+  <!-- ---- 02. Mint the token -------------------------------------------------------------- -->
+
+  <section class="section">
+    <div class="section__head">
+      <h2><span class="section__num">02.</span>Issue a machine token</h2>
+    </div>
+
+    @if (!isAdmin) {
+      <p class="gate">
+        <span class="ms ms--sm" aria-hidden="true">lock</span>
+        <span>
+          Issuing a machine token requires the admin role — it creates a credential that outlives
+          every session, so it is gated the same way registering a project is.
+        </span>
+      </p>
+    } @else if (minted(); as token) {
+      <div class="card token rise">
+        <p class="token__warn" role="status">
+          <span class="ms ms--sm" aria-hidden="true">warning</span>
+          <span>
+            <b>Copy this now.</b> Nothing stores it — not this browser, not the API — so leaving
+            this page loses it and the only fix is to issue another.
+          </span>
+        </p>
+
+        <div class="token__value">
+          <code class="token__text" [class.token__text--masked]="!tokenRevealed()">
+            {{ tokenRevealed() ? token.token : maskedToken(token.token) }}
+          </code>
+
+          <div class="token__controls">
+            <button
+              type="button"
+              class="icon-btn"
+              [attr.aria-label]="tokenRevealed() ? 'Hide the token' : 'Show the token in full'"
+              [title]="tokenRevealed() ? 'Hide' : 'Show in full'"
+              (click)="toggleReveal()"
+            >
+              <span class="ms ms--sm" aria-hidden="true">
+                {{ tokenRevealed() ? 'visibility_off' : 'visibility' }}
+              </span>
+            </button>
+            <button
+              type="button"
+              class="icon-btn"
+              aria-label="Copy the machine token"
+              title="Copy"
+              (click)="copy('SENTINELAI_MACHINE_TOKEN', token.token)"
+            >
+              <span class="ms ms--sm" aria-hidden="true">
+                {{ copiedName() === 'SENTINELAI_MACHINE_TOKEN' ? 'check' : 'content_copy' }}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <div class="token__meta">
+          <span class="mute">Expires</span>
+          <span class="mono">{{ token.expiresAt | date: 'medium' }}</span>
+        </div>
+
+        <div class="token__chips">
+          @for (scope of token.scopes; track scope) {
+            <span class="chip chip--accent">{{ scope }}</span>
+          }
+          <span class="chip chip--mute" title="Every destructive endpoint is role-gated, not scope-gated">
+            no role
+          </span>
+        </div>
+
+        <div class="card__foot">
+          <span class="mute">
+            It can upload a scan and read the result back. It cannot purge a bundle, register a
+            project, delete the account, or issue another token.
+          </span>
+          <button type="button" class="link-btn" (click)="mint()" [disabled]="minting()">
+            Issue a replacement
+            <span class="ms ms--xs" aria-hidden="true">refresh</span>
+          </button>
+        </div>
+      </div>
+    } @else {
+      <div class="card">
+        <p class="hint">
+          A long-lived credential for the CI runner, scoped to this tenant. It is returned once and
+          never stored, so treat what comes back the way you would a password.
+        </p>
+
+        @if (mintError(); as message) {
+          <p class="error" role="alert">
+            <span class="ms ms--sm" aria-hidden="true">error</span>
+            <span>{{ message }}</span>
+          </p>
+        }
+
+        <div class="actions">
+          <button type="button" class="btn btn--primary" (click)="mint()" [disabled]="minting()">
+            @if (minting()) {
+              <span class="spinner" aria-hidden="true"></span>
+              Issuing…
+            } @else {
+              <span class="ms ms--sm" aria-hidden="true">key</span>
+              Issue machine token
+            }
+          </button>
+        </div>
+      </div>
+    }
+  </section>
+
+  <!-- ---- 03. The three values ------------------------------------------------------------ -->
+
+  <section class="section">
+    <div class="section__head">
+      <h2><span class="section__num">03.</span>Set them on the repository</h2>
+    </div>
+
+    <div class="values">
+      @for (value of values(); track value.name) {
+        <article class="card value" [class.value--pending]="!value.value">
+          <header class="value__head">
+            <code class="value__name">{{ value.name }}</code>
+            @if (value.kind === 'secret') {
+              <span class="chip chip--warn" title="Masked in Actions logs; never readable again">
+                <span class="ms ms--xs" aria-hidden="true">lock</span>
+                secret
+              </span>
+            } @else {
+              <span class="chip chip--mute" title="Readable by anyone who can read the repository">
+                variable
+              </span>
+            }
+          </header>
+
+          <div class="value__row">
+            @if (value.value) {
+              <code class="value__text">
+                {{
+                  value.name === 'SENTINELAI_MACHINE_TOKEN' && !tokenRevealed()
+                    ? maskedToken(value.value)
+                    : value.value
+                }}
+              </code>
+              <button
+                type="button"
+                class="icon-btn"
+                [attr.aria-label]="'Copy ' + value.name"
+                [title]="'Copy ' + value.name"
+                (click)="copy(value.name, value.value)"
+              >
+                <span class="ms ms--sm" aria-hidden="true">
+                  {{ copiedName() === value.name ? 'check' : 'content_copy' }}
+                </span>
+              </button>
+            } @else {
+              <span class="value__pending">
+                <span class="ms ms--sm" aria-hidden="true">pending</span>
+                {{
+                  value.name === 'SENTINELAI_PROJECT_ID'
+                    ? 'Pick a repository in step 01'
+                    : 'Issue a token in step 02'
+                }}
+              </span>
+            }
+          </div>
+
+          <p class="value__hint">{{ value.hint }}</p>
+        </article>
+      }
+    </div>
+  </section>
+
+  <!-- ---- 04. Paste ------------------------------------------------------------------------ -->
+
+  <section class="section">
+    <div class="section__head">
+      <h2><span class="section__num">04.</span>Or set all three at once</h2>
+    </div>
+
+    <div class="card">
+      <p class="hint">
+        With the
+        <a href="https://cli.github.com" rel="noopener">GitHub CLI</a> installed and authenticated.
+        The token is written out in full here — this block is meant for a terminal, and a masked
+        value pasted into it would set the secret to a row of dots.
+      </p>
+
+      <pre class="wire wire--tight">{{ ghCommands() }}</pre>
+
+      <div class="actions">
+        <button
+          type="button"
+          class="btn btn--soft btn--sm"
+          [disabled]="!complete()"
+          (click)="copy('gh', ghCommands())"
+        >
+          <span class="ms ms--sm" aria-hidden="true">
+            {{ copiedName() === 'gh' ? 'check' : 'content_copy' }}
+          </span>
+          {{ copiedName() === 'gh' ? 'Copied' : 'Copy all three commands' }}
+        </button>
+        @if (!complete()) {
+          <p class="hint">Finish steps 01 and 02 first — the commands are incomplete until then.</p>
+        }
+      </div>
+    </div>
+  </section>
+
+  <p class="hint setup__foot">
+    <span class="ms ms--sm" aria-hidden="true">info</span>
+    <span>
+      The workflow that reads these is <code>.github/workflows/sentinelai.yml</code>. Once they are
+      set, opening a pull request runs a scan, and the audit shows up under
+      <a routerLink="/scans">Scan history</a>.
+    </span>
+  </p>
+</div>

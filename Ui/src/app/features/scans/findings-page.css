@@ -87,7 +87,3 @@
 .cell-node:hover code {
   color: var(--accent-bright);
 }
-
-.actions--center {
-  justify-content: center;
-}

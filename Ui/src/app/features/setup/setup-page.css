@@ -1,0 +1,162 @@
+/*
+ * The one-time token panel, and the three value rows.
+ *
+ * The token panel is styled apart from the rows below it on purpose. It holds the only value on
+ * this screen that cannot be recovered by reloading the page, and a panel that looks like one
+ * more card in the stack is one people scroll past.
+ */
+
+.token {
+  gap: 1rem;
+  border-color: var(--tier-inferred, var(--border-strong));
+}
+
+.token__warn {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--text-dim);
+}
+
+.token__warn b {
+  color: var(--text);
+}
+
+.token__value {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: var(--radius);
+  background: var(--bg-deep);
+  border: 1px solid var(--border-soft);
+  min-width: 0;
+}
+
+.token__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  line-height: 1.6;
+  color: var(--text-dim);
+  /* The revealed token is ~400 characters of unbroken base64url — it has to wrap somewhere, and
+     anywhere is fine, so long as it does not push the page sideways. */
+  word-break: break-all;
+  max-height: 9rem;
+  overflow-y: auto;
+}
+
+.token__text--masked {
+  color: var(--text-mute);
+  letter-spacing: 0.04em;
+}
+
+.token__controls {
+  flex: none;
+  display: flex;
+  gap: 0.25rem;
+}
+
+.token__meta {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+}
+
+.token__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+/* ---- The three values ------------------------------------------------------------------- */
+
+.values {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.value {
+  gap: 0.7rem;
+}
+
+/*
+ * A value that is not filled in yet is dimmed rather than hidden. All three names are what
+ * someone is checking against their repository settings, so the row has to exist even while it
+ * has nothing to copy — a list that grows from one entry to three as you work down the page
+ * never shows you the whole shape of what you are setting up.
+ */
+.value--pending {
+  border-style: dashed;
+}
+
+.value__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.value__name {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+
+.value__row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius);
+  background: var(--bg-deep);
+  border: 1px solid var(--border-soft);
+  min-width: 0;
+}
+
+.value__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  color: var(--text-dim);
+  word-break: break-all;
+  max-height: 7rem;
+  overflow-y: auto;
+}
+
+.value__pending {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.78rem;
+  color: var(--text-mute);
+}
+
+.value__hint {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: var(--text-mute);
+}
+
+.setup__foot {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  padding-top: 0.5rem;
+}
+
+@media (min-width: 900px) {
+  .values {
+    gap: 1rem;
+  }
+}

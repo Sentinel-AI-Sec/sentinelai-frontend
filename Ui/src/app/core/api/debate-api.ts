@@ -19,6 +19,64 @@ import { environment } from '../config/environment';
  * remarks). A caller here should expect the request to sit open for over a minute.
  */
 
+/**
+ * One hop of a chain, as the backend read it out of an agent's turn.
+ *
+ * Every field here is either quoted from the turn or checked against the resource graph the
+ * agent was given — none of it is inferred, and the parsing that produced it lives in
+ * `TurnPresenter` on the server rather than here. Re-deriving it in the browser would mean two
+ * parsers disagreeing about what an agent said, and the screen contradicting the database.
+ */
+export interface DebateHopView {
+  /** 1-based position within the turn. */
+  order: number;
+  /** The `N<n>` label the agent wrote. */
+  from: string;
+  to: string;
+  /** The graph's own name for the node — never the agent's inline claim about it. */
+  fromLabel: string | null;
+  toLabel: string | null;
+  relation: string | null;
+  /** An ATT&CK id, kept only where the brief itself named it. */
+  technique: string | null;
+  /**
+   * Blue's judgement: `Confirmed`, `Unresolved`, `Refuted` — or `Unattributed`, which means
+   * Blue said nothing this hop can be held to. `Unattributed` is NOT a pass and must never be
+   * rendered as one.
+   */
+  verdict: string;
+  /**
+   * The deterministic edge check: `confirmed`, `reversed`, `unrecognized`, or `unchecked`.
+   * The one field on a hop that is not a model's word.
+   */
+  graphStatus: string;
+  evidence: string | null;
+  /** The whole line as written, so the reading above can be checked against it. */
+  text: string;
+}
+
+/** A labelled line an agent wrote — `SEVERITY: high` arrives as label + value. */
+export interface DebateFactView {
+  label: string;
+  value: string;
+}
+
+/**
+ * A turn taken apart into what it claimed.
+ *
+ * `isEmpty` is the case that matters: a model that ignored its instructions produces prose
+ * nothing can be read out of, and the turn is then rendered as plain text instead.
+ */
+export interface DebateDisplayView {
+  headline: string | null;
+  hops: DebateHopView[];
+  facts: DebateFactView[];
+  notes: string[];
+  /** Blue only: `CHAIN_HOLDS`, `CHAIN_BROKEN`, or `UNREADABLE`. Null for the other three. */
+  verdict: string | null;
+  isEmpty: boolean;
+}
+
 export interface DebateTurnView {
   role: string;
   round: number;
@@ -27,6 +85,11 @@ export interface DebateTurnView {
   tier: string;
   tokens: number;
   content: string;
+  /**
+   * The structured reading of `content`. Optional on the wire only because a deployed API may
+   * predate it — treat a missing value the same as an empty one and fall back to `content`.
+   */
+  display?: DebateDisplayView;
 }
 
 export interface DebateTierView {
@@ -97,12 +160,17 @@ export class DebateApi {
    * Not a fixture the backend ships (unlike `demo-data.ts`'s report, which mirrors a real
    * endpoint's shape) — this stands in for a call the demo mode has no equivalent live version
    * of, so it is written by hand to look like one.
+   *
+   * Written against the AID-01 stub graph's own node labels, and carrying the same `display`
+   * structure the server computes, so demo mode exercises the real rendering path rather than a
+   * simplified one. The turns deliberately cover the cases worth seeing: a hop Blue left
+   * UNRESOLVED, a hop it never judged, and a technique the brief did not ground.
    */
   private demoResponse(scanJobId: string): Observable<DebateResponse> {
     const response: DebateResponse = {
       scanJobId,
       outcome: 'ChainConfirmed',
-      weakestJoin: 'Inferred',
+      weakestJoin: 'Unresolved',
       rounds: 2,
       turns: 4,
       terminatedByTurnCap: false,
@@ -113,39 +181,229 @@ export class DebateApi {
       transcript: [
         {
           role: 'Orchestrator',
-          round: 1,
+          round: 0,
           confidence: 'Certain',
           tier: 'Cheap',
           tokens: 210,
-          content: 'Briefing: one dependency finding, one code finding, two infra findings. Begin.',
+          content: [
+            'TARGET: N8, the customer-data-bucket holding customer PII.',
+            'LEAD: F1 — commons-collections 3.2.1 (CVE-2015-6420, CVSS 9.8).',
+            'ROUTE: dependency to application code to the running task to its IAM role.',
+            'WEAK JOIN: N2 -> N4, joined by image tag rather than digest.',
+          ].join('\n'),
+          display: {
+            headline: null,
+            hops: [],
+            facts: [
+              { label: 'TARGET', value: 'N8, the customer-data-bucket holding customer PII.' },
+              { label: 'LEAD', value: 'F1 — commons-collections 3.2.1 (CVE-2015-6420, CVSS 9.8).' },
+              {
+                label: 'ROUTE',
+                value: 'dependency to application code to the running task to its IAM role.',
+              },
+              { label: 'WEAK JOIN', value: 'N2 -> N4, joined by image tag rather than digest.' },
+            ],
+            notes: [],
+            verdict: null,
+            isEmpty: false,
+          },
         },
         {
           role: 'Red',
           round: 1,
-          confidence: 'Inferred',
+          confidence: 'Certain',
           tier: 'High',
           tokens: 640,
-          content:
-            'The vulnerable deserialization in OrdersController is reachable from the ' +
-            'newtonsoft.json CVE and lands in a task assuming a wildcard S3 role.',
+          content: [
+            'HOP 1: N1 -> used-by -> N2 | none | F1: the lock file pins 3.2.1 and the handler imports InvokerTransformer',
+            'HOP 2: N2 -> deployed-as -> N4 | none | the api-service task definition references acme/api by tag',
+            'HOP 3: N4 -> assumes -> N6 | none | taskRoleArn names api-task-role',
+            'HOP 4: N6 -> can-access -> N8 | none | F4: the inline policy grants s3:GetObject',
+            'CHAIN: N1 -> N2 -> N4 -> N6 -> N8',
+            'IMPACT: unauthenticated deserialization ends in read/write access to customer PII.',
+          ].join('\n'),
+          display: {
+            headline: null,
+            hops: [
+              {
+                order: 1,
+                from: 'N1',
+                to: 'N2',
+                fromLabel: 'pkg:commons-collections:3.2.1',
+                toLabel: 'code:appdatahandler.deserialize()',
+                relation: 'used-by',
+                technique: null,
+                verdict: 'Unattributed',
+                graphStatus: 'confirmed',
+                evidence: 'F1: the lock file pins 3.2.1 and the handler imports InvokerTransformer',
+                text: 'HOP 1: N1 -> used-by -> N2 | none | F1: the lock file pins 3.2.1 and the handler imports InvokerTransformer',
+              },
+              {
+                order: 2,
+                from: 'N2',
+                to: 'N4',
+                fromLabel: 'code:appdatahandler.deserialize()',
+                toLabel: 'task:ecs-task/api-service',
+                relation: 'deployed-as',
+                technique: null,
+                verdict: 'Unattributed',
+                graphStatus: 'confirmed',
+                evidence: 'the api-service task definition references acme/api by tag',
+                text: 'HOP 2: N2 -> deployed-as -> N4 | none | the api-service task definition references acme/api by tag',
+              },
+              {
+                order: 3,
+                from: 'N4',
+                to: 'N6',
+                fromLabel: 'task:ecs-task/api-service',
+                toLabel: 'iam_role:api-task-role',
+                relation: 'assumes',
+                technique: null,
+                verdict: 'Unattributed',
+                graphStatus: 'confirmed',
+                evidence: 'taskRoleArn names api-task-role',
+                text: 'HOP 3: N4 -> assumes -> N6 | none | taskRoleArn names api-task-role',
+              },
+              {
+                order: 4,
+                from: 'N6',
+                to: 'N8',
+                fromLabel: 'iam_role:api-task-role',
+                toLabel: 's3:customer-data-bucket',
+                relation: 'can-access',
+                technique: null,
+                verdict: 'Unattributed',
+                graphStatus: 'confirmed',
+                evidence: 'F4: the inline policy grants s3:GetObject',
+                text: 'HOP 4: N6 -> can-access -> N8 | none | F4: the inline policy grants s3:GetObject',
+              },
+            ],
+            facts: [
+              { label: 'CHAIN', value: 'N1 -> N2 -> N4 -> N6 -> N8' },
+              {
+                label: 'IMPACT',
+                value: 'unauthenticated deserialization ends in read/write access to customer PII.',
+              },
+            ],
+            notes: [],
+            verdict: null,
+            isEmpty: false,
+          },
         },
         {
           role: 'Blue',
           round: 1,
-          confidence: 'Inferred',
+          confidence: 'Unresolved',
           tier: 'High',
           tokens: 585,
-          content:
-            'Agreed on the code and infra joins. The image-to-task join is a name match, not a ' +
-            'digest — demoting this chain to inferred rather than certain.',
+          content: [
+            'HOP 1: N1 -> N2 | CONFIRMED | the lock file and the import in F1 both name the gadget class',
+            'HOP 2: N2 -> N4 | UNRESOLVED | U1: the image is joined by mutable tag, not by digest',
+            'HOP 3: N4 -> N6 | CONFIRMED | the task definition names api-task-role outright',
+            'HOP 4: N6 -> N8 | CONFIRMED | F4 grants s3:Get/PutObject on customer-data-bucket/*',
+            'VERDICT: CHAIN_HOLDS',
+          ].join('\n'),
+          display: {
+            headline: null,
+            hops: [
+              {
+                order: 1,
+                from: 'N1',
+                to: 'N2',
+                fromLabel: 'pkg:commons-collections:3.2.1',
+                toLabel: 'code:appdatahandler.deserialize()',
+                relation: null,
+                technique: null,
+                verdict: 'Confirmed',
+                graphStatus: 'confirmed',
+                evidence: 'the lock file and the import in F1 both name the gadget class',
+                text: 'HOP 1: N1 -> N2 | CONFIRMED | the lock file and the import in F1 both name the gadget class',
+              },
+              {
+                order: 2,
+                from: 'N2',
+                to: 'N4',
+                fromLabel: 'code:appdatahandler.deserialize()',
+                toLabel: 'task:ecs-task/api-service',
+                relation: null,
+                technique: null,
+                verdict: 'Unresolved',
+                graphStatus: 'confirmed',
+                evidence: 'U1: the image is joined by mutable tag, not by digest',
+                text: 'HOP 2: N2 -> N4 | UNRESOLVED | U1: the image is joined by mutable tag, not by digest',
+              },
+              {
+                order: 3,
+                from: 'N4',
+                to: 'N6',
+                fromLabel: 'task:ecs-task/api-service',
+                toLabel: 'iam_role:api-task-role',
+                relation: null,
+                technique: null,
+                verdict: 'Confirmed',
+                graphStatus: 'confirmed',
+                evidence: 'the task definition names api-task-role outright',
+                text: 'HOP 3: N4 -> N6 | CONFIRMED | the task definition names api-task-role outright',
+              },
+              {
+                order: 4,
+                from: 'N6',
+                to: 'N8',
+                fromLabel: 'iam_role:api-task-role',
+                toLabel: 's3:customer-data-bucket',
+                relation: null,
+                technique: null,
+                verdict: 'Confirmed',
+                graphStatus: 'confirmed',
+                evidence: 'F4 grants s3:Get/PutObject on customer-data-bucket/*',
+                text: 'HOP 4: N6 -> N8 | CONFIRMED | F4 grants s3:Get/PutObject on customer-data-bucket/*',
+              },
+            ],
+            facts: [],
+            notes: [],
+            verdict: 'CHAIN_HOLDS',
+            isEmpty: false,
+          },
         },
         {
           role: 'Reporter',
           round: 2,
-          confidence: 'Inferred',
+          confidence: 'Unresolved',
           tier: 'High',
           tokens: 410,
-          content: 'Reporting one chain, inferred confidence, priority 1. See summary.',
+          content: [
+            'CHAIN: N1 -> N2 -> N4 -> N6 -> N8',
+            'SEVERITY: high — a CVSS 9.8 gadget chain ends at the crown jewel',
+            'CONFIDENCE: unresolved — the weakest join is N2 -> N4',
+            'IMPACT: an attacker reaching the deserialization sink can read and write customer PII.',
+            'EVIDENCE: F1 for the gadget chain, F4 for the bucket grant, U1 for the image join',
+            'NEXT: record the deployed image digest and compare it against the task definition.',
+          ].join('\n'),
+          display: {
+            headline: null,
+            hops: [],
+            facts: [
+              { label: 'CHAIN', value: 'N1 -> N2 -> N4 -> N6 -> N8' },
+              { label: 'SEVERITY', value: 'high — a CVSS 9.8 gadget chain ends at the crown jewel' },
+              { label: 'CONFIDENCE', value: 'unresolved — the weakest join is N2 -> N4' },
+              {
+                label: 'IMPACT',
+                value:
+                  'an attacker reaching the deserialization sink can read and write customer PII.',
+              },
+              {
+                label: 'EVIDENCE',
+                value: 'F1 for the gadget chain, F4 for the bucket grant, U1 for the image join',
+              },
+              {
+                label: 'NEXT',
+                value: 'record the deployed image digest and compare it against the task definition.',
+              },
+            ],
+            notes: [],
+            verdict: null,
+            isEmpty: false,
+          },
         },
       ],
       disclaimer:

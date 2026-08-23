@@ -156,25 +156,9 @@
   word-break: break-all;
 }
 
-.check {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
+/* The verdict chip sits at the far end of the hop header, opposite the node key. */
+.hop__head .chip {
   margin-left: auto;
-  font-family: var(--mono);
-  font-size: 0.66rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  white-space: nowrap;
-}
-
-.check--ok {
-  color: var(--tier-certain);
-}
-
-.check--open {
-  color: var(--text-mute);
 }
 
 .reached {
@@ -192,6 +176,12 @@
   margin-top: 0.55rem;
   font-size: 0.76rem;
   color: var(--text-mute);
+}
+
+/* Stated plainly rather than dressed as an absence of data — no technique is the normal case. */
+.hop__technique--none {
+  font-style: italic;
+  opacity: 0.8;
 }
 
 /* ---- evidence ---------------------------------------------------------------------------- */

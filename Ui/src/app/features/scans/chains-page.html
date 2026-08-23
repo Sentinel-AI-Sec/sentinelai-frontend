@@ -1,0 +1,86 @@
+<div class="page">
+  <header class="page-head">
+    <div class="page-head__main">
+      <p class="eyebrow">
+        <span class="ms ms--xs" aria-hidden="true">route</span>
+        Scan
+        <code>{{ id() }}</code>
+      </p>
+      <h1>Exploit chains</h1>
+      <p class="lede">
+        Findings from every layer, joined into ordered chains that each carry how far they can be
+        trusted. Drawn from this scan's own resource graph.
+      </p>
+    </div>
+  </header>
+
+  <app-scan-tabs [scanJobId]="id()" />
+
+  @if (loading()) {
+    <div class="state" role="status">
+      <span class="spinner" aria-hidden="true"></span>
+      Reading chains…
+    </div>
+  } @else if (error(); as message) {
+    <div class="state state--row">
+      <p class="error" role="alert">
+        <span class="ms ms--sm" aria-hidden="true">error</span>
+        {{ message }}
+      </p>
+      <button type="button" class="btn" (click)="retry()">Try again</button>
+    </div>
+  } @else if (chains().length === 0) {
+    <div class="empty">
+      <span class="ms ms--xl" aria-hidden="true">route</span>
+      <h2>No chains on this scan</h2>
+      <p class="hint">
+        That is a result, not an error. Findings can exist without any path joining them — a chain
+        needs an edge the graph stage could actually establish between two of them.
+      </p>
+    </div>
+  } @else {
+    <!--
+      Said before the diagrams, not after. Most chains here have never been through the debate:
+      their hops read `unassessed`, which means nobody looked — not that nothing was found. A page
+      of confident-looking drawings with no such caveat is the claim this product exists not to
+      make.
+    -->
+    @if (!adjudicated()) {
+      <p class="gate" role="note">
+        <span class="ms ms--sm" aria-hidden="true">info</span>
+        <span>
+          These are <strong>candidates</strong>. The graph stage found these paths; the Red/Blue
+          debate has not adjudicated them, so no hop here carries a verdict yet.
+        </span>
+      </p>
+    }
+
+    @for (chain of chains(); track chain.id) {
+      <div class="chain-block">
+        <app-chain-diagram
+          [chain]="chain"
+          [nodesByKey]="nodesByKey()"
+          [findingsById]="findingsById()"
+        />
+        <app-chain-card [chain]="chain" [findingsById]="findingsById()" />
+      </div>
+    }
+
+    <!--
+      No count. The chains endpoint is cursor-paged and exposes no total, so "48 chains" here would
+      be the size of what happens to be loaded wearing the name of the whole.
+    -->
+    @if (hasMore()) {
+      <div class="actions actions--center">
+        <button type="button" class="btn" [disabled]="loadingMore()" (click)="loadMore()">
+          @if (loadingMore()) {
+            <span class="spinner" aria-hidden="true"></span>
+            Loading…
+          } @else {
+            Load more chains
+          }
+        </button>
+      </div>
+    }
+  }
+</div>

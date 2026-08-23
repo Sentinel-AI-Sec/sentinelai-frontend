@@ -1,0 +1,59 @@
+/*
+ * Filters sit on one line and wrap to stacked fields on a narrow screen, rather than the table
+ * scrolling sideways underneath a row of controls that no longer lines up with it.
+ */
+.filters {
+  display: flex;
+  /*
+   * Spelled out rather than left to the initial value. `.card` is itself a flex container in
+   * `column`, and although `flex-direction` does not inherit — this row was never actually being
+   * stacked — a nested flex container whose direction matters is worth stating, because the two
+   * declarations sit next to each other in the inspector and the reader should not have to
+   * remember which properties cascade.
+   */
+  flex-direction: row;
+  flex-wrap: wrap;
+  /*
+   * Centred, and stretch rather than bottom-aligned.
+   *
+   * `flex-end` lined the controls up by their bottom edges, which sounds right and is not: each
+   * `.field` is a label stacked over a select, so bottom-aligning aligns the selects while
+   * leaving the two labels at different heights whenever one wraps. Letting the fields stretch
+   * keeps label-over-control intact in both, and the row reads as one group.
+   */
+  justify-content: center;
+  align-items: normal;
+  gap: 0.75rem;
+}
+
+.filters .field {
+  flex: 0 1 18rem;
+  min-width: 0;
+}
+
+/*
+ * A <select>'s automatic minimum size is its longest option, and the options here are repository
+ * URLs. Without this the control refuses to shrink below that width however willing its flex
+ * item is to give it up, and on a phone the filter row — not the table — is what pushes the page
+ * sideways. `min-width: 0` is what actually lets flex shrink it; the ellipsis is so the value
+ * still degrades readably once it has.
+ */
+.filters .field__input {
+  width: 100%;
+  min-width: 0;
+  text-overflow: ellipsis;
+}
+
+/*
+ * The reason a scan failed, on its own row under the one it belongs to.
+ *
+ * Not a column: failure_reason is a sentence, and a sentence in a cell either truncates to
+ * uselessness or forces every other row's height. A scan that failed is the row a reader most
+ * needs to understand, so the text is given the width to be read.
+ */
+.failure-row td {
+  padding-top: 0;
+  color: var(--danger, #e5484d);
+  font-size: 0.85rem;
+  border-top: 0;
+}

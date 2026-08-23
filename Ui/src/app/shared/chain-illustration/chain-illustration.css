@@ -1,0 +1,235 @@
+/*
+ * The illustration speaks the same visual language as the real graph at /scans/:id/graph: the same
+ * layer colours, the same three confidence tiers, the same dashed-for-inferred convention. A
+ * marketing diagram in its own private palette would teach a reader a vocabulary the product does
+ * not use.
+ */
+
+.chain-fig {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/*
+ * Capped by width rather than by height. A max-height on a 3:1 viewBox letterboxes: the SVG box
+ * stays as wide as its container while the drawing shrinks to fit the height, leaving dead space
+ * down both sides. Bounding the width instead means the drawing always fills the box it is given.
+ */
+.chain-scroll {
+  overflow-x: auto;
+  border-radius: var(--radius);
+}
+
+.chain-svg {
+  display: block;
+  width: 100%;
+  max-width: 60rem;
+  /*
+   * Below this the labels stop being readable rather than merely small — at a phone width the
+   * 9px type in the viewBox lands at about four pixels. The scroller above is what makes that a
+   * choice the reader can undo.
+   */
+  min-width: 48rem;
+  height: auto;
+  margin-inline: auto;
+  overflow: visible;
+}
+
+/* ---- Layer bands ---------------------------------------------------------------------------- */
+
+.ci-band {
+  fill: var(--surface-2);
+  stroke: var(--border-soft);
+  stroke-width: 1;
+}
+
+.ci-band--dep {
+  fill: color-mix(in oklab, var(--layer-dep) 7%, var(--surface-2));
+}
+
+.ci-band--code {
+  fill: color-mix(in oklab, var(--layer-code) 7%, var(--surface-2));
+}
+
+.ci-band--infra {
+  fill: color-mix(in oklab, var(--layer-infra) 7%, var(--surface-2));
+}
+
+.ci-band-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-anchor: middle;
+  fill: var(--text-mute);
+}
+
+.ci-band-label--dep {
+  fill: var(--layer-dep);
+}
+.ci-band-label--code {
+  fill: var(--layer-code);
+}
+.ci-band-label--infra {
+  fill: var(--layer-infra);
+}
+
+/* ---- Edges ---------------------------------------------------------------------------------- */
+
+.ci-edge {
+  fill: none;
+  stroke-width: 2;
+}
+
+.ci-edge--certain {
+  stroke: var(--tier-certain);
+}
+
+/* Dashed, so the tier survives greyscale and colour-blindness — the rule tokens.css sets out. */
+.ci-edge--inferred {
+  stroke: var(--tier-inferred);
+  stroke-dasharray: 7 4;
+}
+
+.ci-edge--unresolved {
+  stroke: var(--tier-unresolved);
+  stroke-dasharray: 2 5;
+  stroke-linecap: round;
+  opacity: 0.85;
+}
+
+.ci-arrowhead {
+  fill: var(--tier-certain);
+}
+.ci-arrowhead--inferred {
+  fill: var(--tier-inferred);
+}
+.ci-arrowhead--unresolved {
+  fill: var(--tier-unresolved);
+}
+
+.ci-edge-note {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-anchor: middle;
+  fill: var(--tier-unresolved);
+}
+
+/* ---- Nodes ---------------------------------------------------------------------------------- */
+
+.ci-node circle {
+  stroke-width: 2;
+  fill: var(--surface-3);
+}
+
+.ci-node__type {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-anchor: middle;
+  fill: var(--text);
+}
+
+.ci-node__label {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-anchor: middle;
+  fill: var(--text-dim);
+}
+
+.ci-node__sub {
+  font-family: var(--mono);
+  font-size: 9px;
+  text-anchor: middle;
+  fill: var(--text-mute);
+}
+
+/* The finding on the node, not the node's name — coloured as a severity, not as a layer. */
+.ci-node__sub--cwe {
+  fill: var(--sev-critical);
+}
+
+.ci-node--dep circle {
+  stroke: var(--layer-dep);
+}
+.ci-node--code circle {
+  stroke: var(--layer-code);
+}
+.ci-node--infra circle {
+  stroke: var(--layer-infra);
+}
+
+.ci-node--target .ci-node__halo {
+  fill: none;
+  stroke: var(--sev-critical);
+  stroke-width: 1;
+  opacity: 0.5;
+}
+
+.ci-node--target circle:not(.ci-node__halo) {
+  stroke: var(--sev-critical);
+}
+
+/* Nothing was proven about this node, and it is drawn like it. */
+.ci-node--ghost circle {
+  stroke: var(--tier-unresolved);
+  stroke-dasharray: 3 3;
+  fill: var(--surface-2);
+}
+
+.ci-node--ghost .ci-node__type,
+.ci-node--ghost .ci-node__label {
+  fill: var(--text-mute);
+}
+
+/* ---- Legend and caption --------------------------------------------------------------------- */
+
+.chain-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+
+.chain-legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.chain-key {
+  width: 1.4rem;
+  height: 0;
+  border-top-width: 2px;
+  border-top-style: solid;
+  flex: none;
+}
+
+.chain-key--certain {
+  border-top-color: var(--tier-certain);
+}
+
+.chain-key--inferred {
+  border-top-color: var(--tier-inferred);
+  border-top-style: dashed;
+}
+
+.chain-key--unresolved {
+  border-top-color: var(--tier-unresolved);
+  border-top-style: dotted;
+}
+
+.chain-note {
+  margin: 0.6rem 0 0;
+  max-width: 60ch;
+  font-size: 0.85rem;
+  color: var(--text-mute);
+}

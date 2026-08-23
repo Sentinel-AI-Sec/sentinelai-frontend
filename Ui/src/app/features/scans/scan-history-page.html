@@ -1,0 +1,191 @@
+<div class="page page--wide">
+  <header class="page-head">
+    <div class="page-head__main">
+      <p class="eyebrow">
+        <span class="ms ms--xs" aria-hidden="true">history</span>
+        Scans
+      </p>
+      <h1>Scan history</h1>
+      <p class="lede">
+        Every scan this organisation has run, newest first. Scans are started by the GitHub Action
+        on a push — this console reads them, it never runs them.
+      </p>
+    </div>
+
+    <div class="page-head__actions">
+      <button type="button" class="btn btn--ghost" [disabled]="loading()" (click)="load()">
+        <span class="ms ms--sm" aria-hidden="true">refresh</span>
+        Refresh
+      </button>
+    </div>
+  </header>
+
+  <section class="card filters">
+    <!--
+      A div wrapping a `label for=`, not a `label` wrapping the control. The shared stylesheet
+      styles the bare `label` element — uppercase, letter-spaced, mono — and `text-transform` and
+      `letter-spacing` are inherited, so a label used as the wrapper pushes both down into the
+      select and renders every repository URL and every option in capitals.
+    -->
+    <div class="field">
+      <label for="projectFilter">Project</label>
+      <select
+        id="projectFilter"
+        class="field__input"
+        [value]="projectFilter()"
+        (change)="onProjectFilter($event)"
+      >
+        <option value="">All projects</option>
+        @for (project of projects(); track project.projectId) {
+          <option [value]="project.projectId">{{ project.repoUrl }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="statusFilter">Status</label>
+      <select
+        id="statusFilter"
+        class="field__input"
+        [value]="statusFilter()"
+        (change)="onStatusFilter($event)"
+      >
+        <option value="">Any status</option>
+        <option value="queued">Queued</option>
+        <option value="running">Running</option>
+        <option value="completed">Completed</option>
+        <option value="failed">Failed</option>
+      </select>
+    </div>
+
+    @if (filtered()) {
+      <button type="button" class="btn btn--ghost btn--sm" (click)="clearFilters()">Clear</button>
+    }
+  </section>
+
+  @if (loading()) {
+    <div class="state" role="status">
+      <span class="spinner" aria-hidden="true"></span>
+      Reading scan history…
+    </div>
+  } @else if (error(); as message) {
+    <div class="state state--row">
+      <p class="error" role="alert">
+        <span class="ms ms--sm" aria-hidden="true">error</span>
+        {{ message }}
+      </p>
+      <button type="button" class="btn" (click)="load()">Try again</button>
+    </div>
+  } @else if (scans().length === 0) {
+    <div class="empty">
+      <span class="ms ms--xl" aria-hidden="true">radar</span>
+      @if (filtered()) {
+        <h2>No scans match that filter</h2>
+        <p class="hint">Clear the filters to see everything this organisation has scanned.</p>
+      } @else {
+        <h2>No scans yet</h2>
+        <p class="hint">
+          Scans appear here after the SentinelAI Action runs in a registered repository — on a pull
+          request, or whenever the workflow is triggered. Register the repository on
+          <a routerLink="/projects">Projects</a> and add the workflow to it.
+        </p>
+      }
+    </div>
+  } @else {
+    <section class="card card--flush">
+      <!--
+        The wrap is load-bearing, not decoration. Seven columns with nowrap dates and a
+        three-button action cell overflow on a laptop, and `body { overflow-x: hidden }` turns
+        that overflow into content that is clipped with no way to scroll to it — Status, Stage
+        and every action simply disappear off the right edge.
+      -->
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Started</th>
+              <th scope="col">Repository</th>
+              <th scope="col">Commit</th>
+              <th scope="col">Ref</th>
+              <th scope="col">Status</th>
+              <th scope="col">Stage</th>
+              <th scope="col" aria-label="Actions"></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (scan of scans(); track scan.scan_job_id) {
+              <tr>
+                <td class="nowrap">{{ scan.started_at | date: 'short' }}</td>
+                <td class="truncate">{{ repoLabel(scan) }}</td>
+                <td><code>{{ shortSha(scan) }}</code></td>
+                <td class="mute truncate">{{ scan.pr_ref || '—' }}</td>
+                <td><span class="chip {{ statusClass(scan) }}">{{ scan.status }}</span></td>
+                <td class="mute">{{ scan.stage }}</td>
+                <td class="row-actions">
+                  <a class="btn btn--ghost btn--sm" [routerLink]="['/scans', scan.scan_job_id, 'ops']">
+                    Open
+                  </a>
+                  <a
+                    class="btn btn--ghost btn--sm"
+                    [routerLink]="['/scans', scan.scan_job_id, 'findings']"
+                  >
+                    Findings
+                  </a>
+                  <!--
+                    Chains hang off the scan, so this works even where retention was declined and
+                    there is no report to reach them through.
+                  -->
+                  <a
+                    class="btn btn--ghost btn--sm"
+                    [routerLink]="['/scans', scan.scan_job_id, 'chains']"
+                  >
+                    Chains
+                  </a>
+                  <!--
+                    The only route to an audit that does not involve typing a GUID: a report is
+                    addressed by REPORT id, and this list is the one place that knows the mapping.
+
+                    Absent is normal, not broken. Retention is opt-in (SEC-35, "silence means
+                    delete"), so a completed scan whose submitter did not ask for the report to be
+                    kept correctly has none.
+                  -->
+                  @if (scan.report_id) {
+                    <a class="btn btn--ghost btn--sm" [routerLink]="['/reports', scan.report_id]">
+                      Report
+                    </a>
+                  }
+                </td>
+              </tr>
+
+              @if (scan.failure_reason) {
+                <tr class="failure-row">
+                  <td colspan="7">
+                    <span class="ms ms--sm" aria-hidden="true">error</span>
+                    {{ scan.failure_reason }}
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!--
+      No count anywhere on this screen. The read API exposes no total, so any number here would be
+      the size of what happens to be loaded, presented as the size of the history.
+    -->
+    @if (hasMore()) {
+      <div class="actions actions--center">
+        <button type="button" class="btn" [disabled]="loadingMore()" (click)="loadMore()">
+          @if (loadingMore()) {
+            <span class="spinner" aria-hidden="true"></span>
+            Loading…
+          } @else {
+            Load more
+          }
+        </button>
+      </div>
+    }
+  }
+</div>

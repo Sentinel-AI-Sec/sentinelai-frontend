@@ -1,0 +1,168 @@
+/*
+ * Deliberately the same vocabulary as shared/chain-illustration: the same layer colours, the same
+ * three confidence tiers, the same dashed-for-inferred and dotted-for-unresolved convention. The
+ * illustration teaches a reader this grammar on the dashboard; this is the same grammar with real
+ * data behind it, so a reader who has seen one can read the other without being taught twice.
+ *
+ * The class prefix differs (cd- rather than ci-) only because Angular scopes component styles —
+ * the rules themselves are kept in step on purpose.
+ */
+
+.cd-scroll {
+  overflow-x: auto;
+  border-radius: var(--radius);
+}
+
+.cd-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-inline: auto;
+  overflow: visible;
+}
+
+/* ---- Layer bands ---------------------------------------------------------------------------- */
+
+.cd-band {
+  fill: var(--surface-2);
+  stroke: var(--border-soft);
+  stroke-width: 1;
+}
+
+.cd-band--dep {
+  fill: color-mix(in oklab, var(--layer-dep) 7%, var(--surface-2));
+}
+
+.cd-band--code {
+  fill: color-mix(in oklab, var(--layer-code) 7%, var(--surface-2));
+}
+
+.cd-band--infra {
+  fill: color-mix(in oklab, var(--layer-infra) 7%, var(--surface-2));
+}
+
+.cd-band-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-anchor: middle;
+  fill: var(--text-mute);
+}
+
+.cd-band-label--dep {
+  fill: var(--layer-dep);
+}
+.cd-band-label--code {
+  fill: var(--layer-code);
+}
+.cd-band-label--infra {
+  fill: var(--layer-infra);
+}
+
+/* ---- Edges ---------------------------------------------------------------------------------- */
+
+.cd-edge {
+  fill: none;
+  stroke-width: 2;
+}
+
+.cd-edge--certain {
+  stroke: var(--tier-certain);
+}
+
+/* Dashed and dotted, so the tier survives greyscale and colour blindness — tokens.css's rule. */
+.cd-edge--inferred {
+  stroke: var(--tier-inferred);
+  stroke-dasharray: 7 4;
+}
+
+.cd-edge--unresolved {
+  stroke: var(--tier-unresolved);
+  stroke-dasharray: 2 5;
+  stroke-linecap: round;
+  opacity: 0.85;
+}
+
+.cd-arrowhead {
+  fill: var(--tier-certain);
+}
+.cd-arrowhead--inferred {
+  fill: var(--tier-inferred);
+}
+.cd-arrowhead--unresolved {
+  fill: var(--tier-unresolved);
+}
+
+/* ---- Nodes ---------------------------------------------------------------------------------- */
+
+.cd-node circle {
+  stroke-width: 2;
+  fill: var(--surface-3);
+  stroke: var(--border-strong);
+}
+
+.cd-node__type {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-anchor: middle;
+  fill: var(--text);
+}
+
+.cd-node__label {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-anchor: middle;
+  fill: var(--text-dim);
+}
+
+.cd-node__sub {
+  font-family: var(--mono);
+  font-size: 9px;
+  text-anchor: middle;
+  fill: var(--text-mute);
+}
+
+/* The finding on the node, not the node's name — coloured as a severity, not as a layer. */
+.cd-node__sub--cwe {
+  fill: var(--sev-critical);
+}
+
+.cd-node--dep circle {
+  stroke: var(--layer-dep);
+}
+.cd-node--code circle {
+  stroke: var(--layer-code);
+}
+.cd-node--infra circle {
+  stroke: var(--layer-infra);
+}
+
+/* What the chain claims to reach. */
+.cd-node--target .cd-node__halo {
+  fill: none;
+  stroke: var(--sev-critical);
+  stroke-width: 1;
+  opacity: 0.5;
+}
+
+.cd-node--target circle:not(.cd-node__halo) {
+  stroke: var(--sev-critical);
+}
+
+/*
+ * Blue positively contradicted this hop. Only `refuted` earns this treatment — `unassessed` and
+ * `unattributed` mean nobody looked, and drawing those as doubt would be inventing a judgement.
+ */
+.cd-node--ghost circle {
+  stroke: var(--tier-unresolved);
+  stroke-dasharray: 3 3;
+  fill: var(--surface-2);
+}
+
+.cd-node--ghost .cd-node__type,
+.cd-node--ghost .cd-node__label {
+  fill: var(--text-mute);
+}

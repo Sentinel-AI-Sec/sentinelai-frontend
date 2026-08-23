@@ -45,6 +45,26 @@ export const routes: Routes = [
     title: 'Projects · SentinelAI',
   },
   {
+    // The three values a repository needs before the Action can scan it: the API URL, a project
+    // id, and a machine token. Sits beside /projects rather than under it because two of the
+    // three are not about any one project.
+    path: 'setup',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/setup/setup-page').then((m) => m.SetupPage),
+    title: 'Set up CI · SentinelAI',
+  },
+  {
+    // Declared before 'scans/new' only for readability — the two cannot collide, since every
+    // route below is matched on segment count and literal first.
+    path: 'scans',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/scans/scan-history-page').then((m) => m.ScanHistoryPage),
+    title: 'Scan history · SentinelAI',
+  },
+  {
+    // Kept, but off the navigation and gated on admin inside the component. Scans are started by
+    // the Action; this is the by-hand equivalent, for driving the pipeline without a CI run.
     path: 'scans/new',
     canActivate: [authGuard],
     loadComponent: () => import('./features/scans/new-scan-page').then((m) => m.NewScanPage),
@@ -55,6 +75,14 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./features/scans/scan-ops-page').then((m) => m.ScanOpsPage),
     title: 'Scan ops · SentinelAI',
+  },
+  {
+    // Chains belong to the SCAN, not to a report — so they are reachable even where retention was
+    // declined and no audit was kept. Until this route existed they were not.
+    path: 'scans/:id/chains',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/scans/chains-page').then((m) => m.ChainsPage),
+    title: 'Exploit chains · SentinelAI',
   },
   {
     path: 'scans/:id/graph',
@@ -74,6 +102,20 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./features/debate/debate-page').then((m) => m.DebatePage),
     title: 'Debate playground · SentinelAI',
+  },
+  {
+    // The one screen behind no guard. Someone deciding whether to sign up has to be able to
+    // read what it costs, and a pricing page that bounces to /login is a pricing page nobody
+    // reads.
+    path: 'pricing',
+    loadComponent: () => import('./features/pricing/pricing-page').then((m) => m.PricingPage),
+    title: 'Pricing · SentinelAI',
+  },
+  {
+    path: 'billing',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/billing/billing-page').then((m) => m.BillingPage),
+    title: 'Billing · SentinelAI',
   },
   {
     path: 'account',

@@ -16,7 +16,8 @@ import { switchMap, of, catchError } from 'rxjs';
 import { ScanApi } from '../../core/api/scan-api';
 import { Auth } from '../../core/auth/auth';
 import { Recents } from '../../core/history/recents';
-import { Confidence, Finding, Report } from '../../core/api/wire';
+import { Confidence, Finding, GraphNode, Report } from '../../core/api/wire';
+import { ChainDiagram } from '../../shared/chain-diagram/chain-diagram';
 import { ChainCard } from './chain-card';
 import { DraftBanner } from './draft-banner';
 
@@ -48,7 +49,7 @@ const SeverityLabels = ['none', 'low', 'medium', 'high', 'critical'];
 @Component({
   selector: 'app-report-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ChainCard, DraftBanner, RouterLink, DatePipe, CurrencyPipe],
+  imports: [ChainCard, ChainDiagram, DraftBanner, RouterLink, DatePipe, CurrencyPipe],
   templateUrl: './report-page.html',
   styleUrl: './report-page.css',
 })
@@ -66,6 +67,20 @@ export class ReportPage {
   readonly error = signal<string | null>(null);
 
   readonly tenantId = this.auth.tenantId;
+
+  /**
+   * The scan's graph nodes, so a chain can be drawn with its real layer bands.
+   *
+   * Best-effort and separate from the report: `GET /v1/reports/{id}` returns chains without the
+   * graph, and a chain draws correctly without it — just without bands. Failing the whole screen
+   * because a supplementary read failed would be trading the thing the reader came for against a
+   * decoration.
+   */
+  readonly graphNodes = signal<GraphNode[]>([]);
+
+  readonly nodesByKey = computed(
+    () => new Map(this.graphNodes().map((node) => [node.node_key, node])),
+  );
 
   readonly findingsById = computed(
     () => new Map(this.findings().map((finding) => [finding.id, finding])),
@@ -151,6 +166,7 @@ export class ReportPage {
     // while the new URL is already in the address bar.
     this.report.set(null);
     this.findings.set([]);
+    this.graphNodes.set([]);
 
     this.api
       .getReport(id)
@@ -161,6 +177,15 @@ export class ReportPage {
           // it next, and the API has no way to enumerate either.
           this.recents.note('report', id);
           this.recents.note('scan', report.scan_job_id);
+
+          // The graph is fetched for one reason: it is the only place a hop's LAYER is stated.
+          // A chain row carries a node key and the confidence of the join that reached it, and
+          // nothing about which layer that node lives in — so without this the diagram draws the
+          // path correctly and simply has no bands. Best-effort, in parallel with the evidence.
+          this.api
+            .getGraph(report.scan_job_id)
+            .pipe(catchError(() => of({ nodes: [] as GraphNode[] })))
+            .subscribe((graph) => this.graphNodes.set(graph.nodes ?? []));
 
           return this.api.getFindings(report.scan_job_id).pipe(
             // Evidence is a nice-to-have; the chains are the point. Degrade, don't fail.

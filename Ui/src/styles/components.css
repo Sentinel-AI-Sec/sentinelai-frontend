@@ -458,6 +458,11 @@ button.danger:disabled {
   flex-wrap: wrap;
 }
 
+/* A single control centred under what it acts on — a "load more" beneath a table. */
+.actions--center {
+  justify-content: center;
+}
+
 /* Segmented control (time range, layer filter). */
 .seg {
   display: inline-flex;
@@ -874,6 +879,20 @@ textarea {
 .table-wrap {
   overflow-x: auto;
   border-radius: var(--radius);
+}
+
+/*
+ * The trailing cell of a table row, holding its per-row links.
+ *
+ * Right-aligned and never wrapped: these read as one control group, and a row whose actions
+ * wrap onto a second line changes the height of the row it belongs to. The overflow this can
+ * cause is the .table-wrap's job to absorb, which is why the two belong together.
+ */
+.row-actions {
+  display: flex;
+  gap: 0.35rem;
+  justify-content: flex-end;
+  white-space: nowrap;
 }
 
 table {

@@ -42,12 +42,15 @@ npm run build     # production build
 | `/login`, `/register` | The auth canvas. Everything else is behind a guard. |
 | `/` | Console: registered projects, what this browser has opened, and the jump-in-by-id entry points. |
 | `/projects` | The repositories this tenant may scan, with the project id built to be copied. |
+| `/setup` | Set up CI: the three values `sentinelai.yml` reads, collected in one place — the API URL, a project id, and a machine token minted on the spot. |
 | `/scans/new` | Submits a bundle — the multipart upload the GitHub Action normally performs. |
 | `/scans/:id/ops` | The pipeline: real stage/status as a stepper, and the stage runners. |
 | `/scans/:id/findings` | Every finding on a scan — server-side layer and severity filters, cursor paging. |
 | `/scans/:id/graph` | The resource graph, drawn: layer columns, joins coloured by confidence. |
 | `/reports/:id` | The draft audit: summary, severity posture, candidate chains, refuted chains, citations. |
 | `/debate` | Runs the Red/Blue/Reporter debate directly and renders the transcript. |
+| `/pricing` | Plans and FAQ. The only route outside the auth guard. |
+| `/billing` | This organisation's subscription, and the hand-off to Stripe. |
 | `/account` | Who you are signed in as, the scopes that gate everything, and the delete path. |
 
 Each chain renders as a vertical path rather than a table, because the ordering *is* the
@@ -69,12 +72,57 @@ the edge.
 3. **Partial validation stays partial.** A chain where Blue accepted three of five hops says
    exactly that. Rounding it up to "validated" is the most expensive lie this screen could
    tell, and a test pins it.
-4. **No invented aggregates.** The read API can fetch one scan and one report by id; it cannot
-   enumerate them. So there is no fleet dashboard, no "scans this week" tile, and no activity
-   feed. What the console remembers is what *this browser* has opened, and every surface that
-   shows it says so — see [`core/history/recents.ts`](Ui/src/app/core/history/recents.ts). The
-   findings page counts the rows it has loaded, not the scan, because under a cursor it cannot
-   honestly claim the latter.
+4. **No invented aggregates.** `GET /v1/scans` enumerates this tenant's scans, and `/scans`
+   renders them — so the history is served, not invented. What is still refused is a *derived*
+   number: the list endpoints expose no total, so there is no "scans this week" tile, because
+   counting a page and presenting it as a population is not counting. The findings page counts the
+   rows it has loaded, not the scan, for the same reason. What the console remembers separately is
+   what *this browser* has opened, and every surface that shows it says so — see
+   [`core/history/recents.ts`](Ui/src/app/core/history/recents.ts).
+
+## Scans are read here, not started here
+
+The console registers projects and reviews what the scans found. It does **not** run a scan: the
+GitHub Action does that, on a push, inside the customer's own CI.
+
+That is a privacy decision as much as a scoping one. A browser that could start a scan would need
+the backend to hold a GitHub credential, and there is nowhere safe to keep one — the backend
+documents that encryption at rest is not implemented on its host. Not holding the token is the
+guarantee. Nothing in this app calls GitHub, and no repository content is fetched by us.
+
+`/scans/new` still exists for submitting a bundle by hand, which is how the pipeline is driven with
+no CI run at all. It is off the navigation and gated on admin — a presentation choice, not an
+enforced one: `POST /v1/scans` authorises on the `scan:write` scope, which an analyst also holds,
+and it has to stay that way because the Action's machine token carries that scope and no role.
+
+## Billing is built but not switched on
+
+`/pricing` and `/billing` are finished screens against a Stripe integration that does not exist
+on the backend yet. Nothing is mocked: while `environment.billing.enabled` is false, every
+action that would spend money says billing is unconfigured instead of starting a flow that
+cannot finish.
+
+To turn it on:
+
+1. Implement the four endpoints named in
+   [`core/api/billing-api.ts`](Ui/src/app/core/api/billing-api.ts) — `GET /v1/billing/subscription`,
+   `POST /v1/billing/checkout`, `POST /v1/billing/portal`, and the Stripe webhook receiver.
+2. Put the Stripe **Price** ids into [`core/billing/plans.ts`](Ui/src/app/core/billing/plans.ts).
+   They are public identifiers, safe to commit — unlike the secret key, which only ever lives
+   on the backend.
+3. Set `environment.billing.enabled` to true.
+
+Two rules the backend has to hold up, because the frontend cannot:
+
+- **Only the signed webhook may change a plan.** The browser being redirected to
+  `?checkout=success` proves nothing — anyone can type that URL. This screen treats the
+  redirect purely as a cue to re-read the subscription, and a test pins that.
+- **The price id and return URLs arriving from the browser are inputs, not instructions.**
+  Check the price against an allow-list, or a caller substitutes the id of a $0 price; check
+  the return URL against your own origins, or you have an open redirect.
+
+The browser never touches a card number or a Stripe key: payment happens on Stripe's hosted
+Checkout page, which keeps this origin out of PCI scope entirely.
 
 ## Structure
 
@@ -94,9 +142,12 @@ Ui/src/
       auth/              session, bearer interceptor, route guard
       history/recents.ts what this browser has opened, keyed by tenant
       config/            environment flags
+      billing/plans.ts   the plan catalogue — the one place a price or Stripe id is written
     features/
       auth/              the split brand/form canvas shared by login and register
       home/              the console landing screen
+      pricing/           plans, comparison and FAQ (no auth guard)
+      billing/           subscription state and the Stripe hand-off
       projects/          registered repositories
       scans/             submit, pipeline ops, findings, resource graph
       report/            the draft audit, chain cards, confidence badges

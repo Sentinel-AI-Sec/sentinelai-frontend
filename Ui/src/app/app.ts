@@ -78,8 +78,14 @@ export class App {
   protected readonly navItems: NavItem[] = [
     { label: 'Dashboard', icon: 'space_dashboard', link: '/', exact: true },
     { label: 'Projects', icon: 'folder_open', link: '/projects' },
-    { label: 'New scan', icon: 'radar', link: '/scans/new' },
+    // Onboarding, and deliberately in the everyday nav rather than tucked behind Projects: the
+    // machine token is not stored anywhere, so this is a screen people come back to.
+    { label: 'Set up CI', icon: 'rocket_launch', link: '/setup' },
+    // Reviewing, not starting. Scans come from the Action; /scans/new still exists for driving
+    // the pipeline by hand, but it is not an everyday surface and is gated on admin.
+    { label: 'Scans', icon: 'history', link: '/scans' },
     { label: 'Debate', icon: 'forum', link: '/debate' },
+    { label: 'Billing', icon: 'credit_card', link: '/billing' },
     { label: 'Account', icon: 'manage_accounts', link: '/account' },
   ];
 
@@ -106,11 +112,20 @@ export class App {
       case 'projects':
         return [{ label: 'Projects' }];
 
+      case 'setup':
+        return [{ label: 'Set up CI' }];
+
       case 'debate':
         return [{ label: 'Debate playground' }];
 
       case 'account':
         return [{ label: 'Account' }];
+
+      case 'pricing':
+        return [{ label: 'Pricing' }];
+
+      case 'billing':
+        return [{ label: 'Billing' }];
 
       case 'reports':
         return [
@@ -120,6 +135,8 @@ export class App {
         ];
 
       case 'scans': {
+        // Bare /scans is the history list — the only one of these with no second segment.
+        if (parts.length === 1) return [{ label: 'Scan history' }];
         if (parts[1] === 'new') return [{ label: 'Scans' }, { label: 'Submit a bundle' }];
         const id = parts[1] ? short(parts[1]) : 'scan';
         const leaf =

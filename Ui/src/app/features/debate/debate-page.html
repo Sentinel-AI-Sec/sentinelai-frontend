@@ -232,6 +232,7 @@
           <ol class="thread">
             @for (turn of r.transcript; track $index) {
               @let who = speaker(turn.role);
+              @let d = display(turn);
               <li class="turn" [attr.data-speaker]="who">
                 <span class="turn__avatar" aria-hidden="true">{{ initial(turn.role) }}</span>
 
@@ -246,7 +247,110 @@
                     <span class="turn__tokens">{{ turn.tier }} tier · {{ turn.tokens }} tokens</span>
                   </div>
 
-                  <p class="turn__content">{{ turn.content }}</p>
+                  @if (d?.headline) {
+                    <p class="turn__headline">{{ d?.headline }}</p>
+                  }
+
+                  <!--
+                    The chain, laid out as a chain. Each hop shows the graph's own name for both
+                    endpoints rather than the N-labels the agents write, because "N6 → N8" is
+                    only meaningful to someone holding the brief, and "iam_role:api-task-role →
+                    s3:customer-data-bucket" is the finding itself.
+                  -->
+                  @if (d && d.hops.length > 0) {
+                    <ol class="hops">
+                      @for (hop of d.hops; track hop.order) {
+                        @let warning = graphWarning(hop);
+                        <li class="hop" [attr.data-status]="hop.graphStatus">
+                          <span class="hop__order" aria-hidden="true">{{ hop.order }}</span>
+
+                          <div class="hop__main">
+                            <div class="hop__edge">
+                              <span class="hop__node" [title]="hop.from">
+                                {{ hop.fromLabel ?? hop.from }}
+                              </span>
+                              <span class="hop__arrow" aria-hidden="true">→</span>
+                              @if (hop.relation) {
+                                <span class="hop__relation">{{ hop.relation }}</span>
+                                <span class="hop__arrow" aria-hidden="true">→</span>
+                              }
+                              <span class="hop__node" [title]="hop.to">
+                                {{ hop.toLabel ?? hop.to }}
+                              </span>
+                            </div>
+
+                            <div class="hop__tags">
+                              <span [class]="hopVerdictChip(hop.verdict)">
+                                <span class="chip__dot" aria-hidden="true"></span>
+                                {{ hopVerdictLabel(hop.verdict) }}
+                              </span>
+                              @if (hop.technique) {
+                                <span class="chip chip--accent" title="ATT&CK technique named in the brief">
+                                  {{ hop.technique }}
+                                </span>
+                              }
+                              <span class="hop__ref mono">{{ hop.from }} → {{ hop.to }}</span>
+                            </div>
+
+                            @if (hop.evidence) {
+                              <p class="hop__evidence">{{ hop.evidence }}</p>
+                            }
+
+                            @if (warning) {
+                              <p class="hop__warning" role="note">
+                                <span class="ms ms--xs" aria-hidden="true">gpp_maybe</span>
+                                <span>{{ warning }}</span>
+                              </p>
+                            }
+                          </div>
+                        </li>
+                      }
+                    </ol>
+                  }
+
+                  @if (d && d.facts.length > 0) {
+                    <dl class="facts">
+                      @for (fact of d.facts; track $index) {
+                        <div class="facts__row">
+                          <dt>{{ fact.label }}</dt>
+                          <dd>{{ fact.value }}</dd>
+                        </div>
+                      }
+                    </dl>
+                  }
+
+                  @if (d && d.notes.length > 0) {
+                    <ul class="turn__notes">
+                      @for (note of d.notes; track $index) {
+                        <li>{{ note }}</li>
+                      }
+                    </ul>
+                  }
+
+                  @if (d?.verdict; as verdict) {
+                    <p class="turn__verdict">
+                      <span [class]="closingVerdictChip(verdict)">
+                        <span class="chip__dot" aria-hidden="true"></span>
+                        {{ verdict }}
+                      </span>
+                      <span class="mute">{{ closingVerdictLabel(verdict) }}</span>
+                    </p>
+                  }
+
+                  <!--
+                    Always reachable, never in the way. Everything above is a reading of this
+                    text, and a reading nobody can check against the original is one they have
+                    to take on faith — which is the opposite of what an audit trail is for. When
+                    there was no reading at all, the text is simply the turn.
+                  -->
+                  @if (d) {
+                    <details class="turn__raw">
+                      <summary>What the agent wrote</summary>
+                      <p class="turn__content">{{ turn.content }}</p>
+                    </details>
+                  } @else {
+                    <p class="turn__content">{{ turn.content }}</p>
+                  }
                 </div>
               </li>
             }

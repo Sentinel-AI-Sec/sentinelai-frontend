@@ -1,0 +1,135 @@
+<figure class="chain-fig">
+  <!--
+    Scrolls rather than shrinks. A 3:1 diagram squeezed into a phone renders its labels at about
+    four pixels tall, which is not a smaller diagram but an unreadable one; the same reasoning, and
+    the same affordance, as the wide tables elsewhere in the app.
+  -->
+  <div class="chain-scroll">
+    <!--
+      role="img" with a label, because the diagram states the product's central claim and a reader
+      who cannot see it must still get that claim rather than a list of orphaned node names.
+    -->
+    <svg
+      class="chain-svg"
+      viewBox="0 0 900 300"
+      role="img"
+      aria-labelledby="chain-illus-title chain-illus-desc"
+      preserveAspectRatio="xMidYMid meet"
+    >
+      <title id="chain-illus-title">A cross-layer exploit chain</title>
+      <desc id="chain-illus-desc">
+        A vulnerable Newtonsoft.Json package reaches an unsafe deserialization in OrdersController,
+        which ships in the tinyapp/order image, which runs as order_task under order_task_role, whose
+        wildcard IAM policy reaches the customer-data S3 bucket. A sixth node, legacy_worker, hangs
+        off the image with an unresolved join.
+      </desc>
+
+      <defs>
+        <marker id="ci-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" class="ci-arrowhead" />
+        </marker>
+        <marker id="ci-arrow-inferred" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" class="ci-arrowhead ci-arrowhead--inferred" />
+        </marker>
+        <marker id="ci-arrow-unresolved" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" class="ci-arrowhead ci-arrowhead--unresolved" />
+        </marker>
+      </defs>
+
+      <!-- Layer bands, so the "cross-layer" claim is visible before any node is read. -->
+      <g class="ci-bands" aria-hidden="true">
+        <rect x="8" y="52" width="150" height="116" rx="14" class="ci-band ci-band--dep" />
+        <rect x="166" y="52" width="150" height="116" rx="14" class="ci-band ci-band--code" />
+        <rect x="324" y="52" width="568" height="116" rx="14" class="ci-band ci-band--infra" />
+
+        <text x="83" y="44" class="ci-band-label ci-band-label--dep">DEPENDENCY</text>
+        <text x="241" y="44" class="ci-band-label ci-band-label--code">CODE</text>
+        <text x="608" y="44" class="ci-band-label ci-band-label--infra">INFRASTRUCTURE</text>
+      </g>
+
+      <!-- Edges first, so the nodes paint over their ends. -->
+      <g class="ci-edges">
+        <path d="M 109 110 L 186 110" class="ci-edge ci-edge--certain" marker-end="url(#ci-arrow)" />
+        <path d="M 254 110 L 331 110" class="ci-edge ci-edge--inferred" marker-end="url(#ci-arrow-inferred)" />
+        <path d="M 399 110 L 476 110" class="ci-edge ci-edge--certain" marker-end="url(#ci-arrow)" />
+        <path d="M 544 110 L 621 110" class="ci-edge ci-edge--certain" marker-end="url(#ci-arrow)" />
+        <path d="M 689 110 L 766 110" class="ci-edge ci-edge--certain" marker-end="url(#ci-arrow)" />
+
+        <!-- The join the fixture plants unresolvable, drawn as such rather than dropped. -->
+        <path
+          d="M 360 141 C 360 190, 300 195, 258 226"
+          class="ci-edge ci-edge--unresolved"
+          marker-end="url(#ci-arrow-unresolved)"
+        />
+        <text x="352" y="196" class="ci-edge-note">unresolved join</text>
+      </g>
+
+      <g class="ci-nodes">
+        <g class="ci-node ci-node--dep">
+          <circle cx="83" cy="110" r="26" />
+          <text class="ci-node__type" x="83" y="115">PKG</text>
+          <text class="ci-node__label" x="83" y="158">Newtonsoft.Json</text>
+          <text class="ci-node__sub" x="83" y="174">12.0.1</text>
+        </g>
+
+        <g class="ci-node ci-node--code">
+          <circle cx="241" cy="110" r="26" />
+          <text class="ci-node__type" x="241" y="115">CODE</text>
+          <text class="ci-node__label" x="241" y="158">OrdersController</text>
+          <text class="ci-node__sub ci-node__sub--cwe" x="241" y="174">CWE-502</text>
+        </g>
+
+        <g class="ci-node ci-node--infra">
+          <circle cx="360" cy="110" r="26" />
+          <text class="ci-node__type" x="360" y="115">IMG</text>
+          <text class="ci-node__label" x="360" y="158">tinyapp/order</text>
+        </g>
+
+        <g class="ci-node ci-node--infra">
+          <circle cx="505" cy="110" r="26" />
+          <text class="ci-node__type" x="505" y="115">TASK</text>
+          <text class="ci-node__label" x="505" y="158">order_task</text>
+        </g>
+
+        <g class="ci-node ci-node--infra">
+          <circle cx="650" cy="110" r="26" />
+          <text class="ci-node__type" x="650" y="115">ROLE</text>
+          <text class="ci-node__label" x="650" y="158">order_task_role</text>
+          <text class="ci-node__sub ci-node__sub--cwe" x="650" y="174">s3:* wildcard</text>
+        </g>
+
+        <!-- The crown jewel: ringed, because it is what the chain is for. -->
+        <g class="ci-node ci-node--infra ci-node--target">
+          <circle class="ci-node__halo" cx="795" cy="110" r="34" />
+          <circle cx="795" cy="110" r="26" />
+          <text class="ci-node__type" x="795" y="115">S3</text>
+          <text class="ci-node__label" x="795" y="158">customer-data</text>
+          <text class="ci-node__sub ci-node__sub--cwe" x="795" y="174">unencrypted</text>
+        </g>
+
+        <!-- Faded, because nothing was proven about it. -->
+        <g class="ci-node ci-node--ghost">
+          <circle cx="228" cy="240" r="20" />
+          <text class="ci-node__type" x="228" y="245">TASK</text>
+          <text class="ci-node__label" x="228" y="280">legacy_worker</text>
+        </g>
+      </g>
+    </svg>
+  </div>
+
+  @if (detailed()) {
+    <figcaption class="chain-caption">
+      <ul class="chain-legend">
+        <li><span class="chain-key chain-key--certain"></span> Certain join</li>
+        <li><span class="chain-key chain-key--inferred"></span> Inferred join</li>
+        <li><span class="chain-key chain-key--unresolved"></span> Unresolved — surfaced, not assumed</li>
+      </ul>
+
+      <p class="chain-note">
+        Six findings that four different scanners each report on their own, joined into one path
+        from a dependency to a customer-data bucket. The weakest link is named rather than hidden:
+        this chain is only as good as its inferred image join, and the audit says so.
+      </p>
+    </figcaption>
+  }
+</figure>

@@ -1,0 +1,333 @@
+<div class="page">
+  <header class="page-head">
+    <div class="page-head__main">
+      <p class="eyebrow">
+        <span class="ms ms--sm" aria-hidden="true">credit_card</span>
+        Billing
+        <code>{{ auth.tenantId() }}</code>
+      </p>
+      <h1>Plan and payment</h1>
+      <p class="lede">
+        What this organisation is subscribed to. Card details, invoices and cancellation are
+        handled on Stripe’s own portal — they never pass through SentinelAI.
+      </p>
+    </div>
+
+    <div class="page-head__actions">
+      <a class="btn btn--ghost" routerLink="/pricing">
+        <span class="ms ms--sm" aria-hidden="true">list_alt</span>
+        Compare plans
+      </a>
+    </div>
+  </header>
+
+  <!-- The redirect back from Stripe is a cue to re-read, never a receipt. -->
+  @if (checkout() === 'success') {
+    <p class="success" role="status">
+      <span class="ms ms--sm" aria-hidden="true">task_alt</span>
+      <span>
+        Payment submitted. Your plan updates here once Stripe confirms it to our backend — that
+        usually takes a few seconds. This page reflects what the backend has confirmed, not what
+        the redirect said.
+      </span>
+    </p>
+
+    <!--
+      The banner above promises the plan will appear "once Stripe confirms it". These two states
+      are that promise being kept: the page keeps asking, and says which of the two things is true
+      rather than leaving a stale plan on screen underneath a green tick.
+    -->
+    @if (confirming()) {
+      <p class="gate" role="status" aria-live="polite">
+        <span class="spinner" aria-hidden="true"></span>
+        Waiting for Stripe to confirm the payment to our backend…
+      </p>
+    } @else if (confirmationTimedOut()) {
+      <p class="gate" role="status">
+        <span class="ms ms--sm" aria-hidden="true">schedule</span>
+        <span>
+          Stripe has not confirmed this to our backend yet. Your payment may still have gone
+          through — nothing is lost, and this page will show the new plan as soon as the
+          confirmation arrives.
+          <button type="button" class="btn btn--ghost btn--sm" (click)="load(true)">
+            Check again
+          </button>
+        </span>
+      </p>
+    }
+  } @else if (checkout() === 'cancelled') {
+    <p class="gate" role="status">
+      <span class="ms ms--sm" aria-hidden="true">info</span>
+      Checkout was cancelled. Nothing has been charged and your plan is unchanged.
+    </p>
+  }
+
+  @if (notConfigured()) {
+    <div class="empty">
+      <span class="ms ms--xl" aria-hidden="true">construction</span>
+      <h2>Billing is not wired up yet</h2>
+      <p class="hint">
+        This deployment has no Stripe account behind it, so there is no subscription to read and
+        nothing can be charged. The plans below are the real structure — see
+        <code>core/api/billing-api.ts</code> for the four endpoints the backend needs.
+      </p>
+      <a class="btn" routerLink="/pricing">See what each plan includes</a>
+    </div>
+  } @else if (loading()) {
+    <div class="state" role="status">
+      <span class="spinner" aria-hidden="true"></span>
+      Reading your subscription…
+    </div>
+  } @else if (error(); as message) {
+    <div class="state state--row">
+      <p class="error" role="alert">
+        <span class="ms ms--sm" aria-hidden="true">error</span>
+        {{ message }}
+      </p>
+      <button type="button" class="btn" (click)="load()">Try again</button>
+    </div>
+  } @else {
+    <div class="grid grid--kpi">
+      <div class="kpi">
+        <div class="kpi__head">
+          <span class="kpi__label">Current plan</span>
+          <span class="ms ms--sm" aria-hidden="true" style="color: var(--accent-soft)">
+            workspace_premium
+          </span>
+        </div>
+        <span class="kpi__value kpi__value--accent">{{ currentPlan()?.name ?? 'Developer' }}</span>
+        <div class="kpi__foot">
+          <span class="chip" [class]="'chip ' + statusClass()">{{ statusLabel() }}</span>
+        </div>
+      </div>
+
+      <div class="kpi">
+        <div class="kpi__head">
+          <span class="kpi__label">Seats</span>
+          <span class="ms ms--sm" aria-hidden="true" style="color: var(--tier-certain)">group</span>
+        </div>
+        <span class="kpi__value">{{ subscription()?.quantity ?? 1 }}</span>
+        <div class="kpi__foot">
+          <span>{{ subscription()?.period ?? 'no paid cadence' }}</span>
+        </div>
+      </div>
+
+      <div class="kpi">
+        <div class="kpi__head">
+          <span class="kpi__label">
+            {{ windingDown() ? 'Access until' : 'Renews' }}
+          </span>
+          <span class="ms ms--sm" aria-hidden="true" style="color: var(--tier-unresolved)">
+            event
+          </span>
+        </div>
+        @if (subscription()?.current_period_end; as end) {
+          <span class="kpi__value renewal">{{ end | date: 'mediumDate' }}</span>
+        } @else {
+          <span class="kpi__value renewal mute">—</span>
+        }
+        <div class="kpi__foot">
+          @if (windingDown()) {
+            <span>Cancelled — will not renew</span>
+          } @else if (subscription()?.trial_end; as trial) {
+            <span>Trial ends {{ trial | date: 'mediumDate' }}</span>
+          } @else {
+            <span>Nothing scheduled</span>
+          }
+        </div>
+      </div>
+
+      <div class="kpi">
+        <div class="kpi__head">
+          <span class="kpi__label">Payment method</span>
+          <span class="ms ms--sm" aria-hidden="true" style="color: var(--text-mute)">lock</span>
+        </div>
+        <span class="kpi__value mute held">Held by Stripe</span>
+        <div class="kpi__foot">
+          <span>Never stored here</span>
+        </div>
+      </div>
+    </div>
+
+    @if (simulated()) {
+      <p class="gate" role="status">
+        <span class="ms ms--sm" aria-hidden="true">science</span>
+        <span>
+          This deployment simulates payments. Upgrading here runs the real checkout and webhook
+          flow so the product can be demonstrated end to end — but no card is asked for and
+          nothing is ever charged.
+        </span>
+      </p>
+    }
+
+    @if (status() === 'past_due') {
+      <p class="error" role="alert">
+        <span class="ms ms--sm" aria-hidden="true">warning</span>
+        <span>
+          The last payment failed. Scans keep running for now, but the subscription will lapse if
+          it is not settled — update the card in the billing portal.
+        </span>
+      </p>
+    }
+
+    @if (actionError(); as message) {
+      <p class="error" role="alert">
+        <span class="ms ms--sm" aria-hidden="true">error</span>
+        {{ message }}
+      </p>
+    }
+
+    <section class="card portal">
+      <div>
+        <h2 class="card__title">
+          <span class="ms ms--sm" aria-hidden="true">receipt_long</span>
+          Invoices, card and cancellation
+        </h2>
+        <p class="hint">
+          Opens Stripe’s billing portal for this organisation. Everything that touches a card
+          happens there.
+        </p>
+      </div>
+      <button
+        type="button"
+        class="btn"
+        [disabled]="working() !== null || !isAdmin()"
+        (click)="openPortal()"
+      >
+        @if (working() === 'portal') {
+          <span class="spinner" aria-hidden="true"></span>
+          Opening…
+        } @else {
+          <span class="ms ms--sm" aria-hidden="true">open_in_new</span>
+          Open billing portal
+        }
+      </button>
+    </section>
+
+    <!--
+      Money actions follow the same admin rule as registering a project or deleting the account,
+      and the API enforces it too. Saying so beats letting an analyst click a live button and
+      collect a raw 403.
+    -->
+    @if (!isAdmin()) {
+      <p class="gate" role="status">
+        <span class="ms ms--sm" aria-hidden="true">lock</span>
+        You can see this organisation’s plan, but changing it needs the admin role.
+      </p>
+    }
+
+    <section class="section">
+      <div class="section__head">
+        <h2><span class="section__num">01.</span>Change plan</h2>
+        <div class="seg" role="group" aria-label="Billing period">
+          <button
+            type="button"
+            class="seg__opt"
+            [attr.aria-pressed]="period() === 'monthly'"
+            (click)="setPeriod('monthly')"
+          >
+            Monthly
+          </button>
+          <button
+            type="button"
+            class="seg__opt"
+            [attr.aria-pressed]="period() === 'annual'"
+            (click)="setPeriod('annual')"
+          >
+            Annual
+          </button>
+        </div>
+      </div>
+
+      <div class="grid">
+        @for (plan of plans; track plan.id) {
+          <div class="card switch" [class.switch--current]="isCurrent(plan)">
+            <div class="card__head">
+              <div>
+                <h3 class="card__title">{{ plan.name }}</h3>
+                <p class="card__sub">
+                  @if (price(plan).amount === null) {
+                    Custom pricing
+                  } @else if (price(plan).amount === 0) {
+                    Free forever
+                  } @else {
+                    ${{ price(plan).amount }} per seat / month
+                  }
+                </p>
+              </div>
+              @if (isCurrent(plan)) {
+                <span class="chip chip--ok">current</span>
+              }
+            </div>
+
+            <p class="hint">{{ plan.blurb }}</p>
+
+            @if (isCurrent(plan)) {
+              <button type="button" class="btn btn--block" disabled>Your current plan</button>
+            } @else if (plan.action === 'contact') {
+              <a
+                class="btn btn--ghost btn--block"
+                href="mailto:sales@sentinelai.example?subject=SentinelAI%20Enterprise"
+              >
+                Talk to us
+              </a>
+            } @else if (plan.action === 'included') {
+              <button type="button" class="btn btn--ghost btn--block" (click)="openPortal()">
+                Downgrade in portal
+              </button>
+            } @else if (!purchasable(plan)) {
+              <button type="button" class="btn btn--block" disabled>Not sold at this period</button>
+            } @else {
+              <!--
+                Team is priced per seat, so the seat count is part of the purchase rather than
+                something to sort out afterwards in the portal.
+              -->
+              <label class="seats">
+                <span class="seats__label">Seats</span>
+                <input
+                  class="seats__input"
+                  type="number"
+                  min="1"
+                  max="500"
+                  step="1"
+                  [value]="seats()"
+                  [disabled]="working() !== null || !isAdmin()"
+                  (input)="onSeatsInput($event)"
+                  [attr.aria-label]="'Seats for ' + plan.name"
+                />
+                @if (price(plan).amount) {
+                  <span class="seats__total">
+                    ${{ (price(plan).amount ?? 0) * seats() }}
+                    @if (period() === 'annual') { / month equivalent } @else { / month }
+                  </span>
+                }
+              </label>
+
+              <button
+                type="button"
+                class="btn btn--primary btn--block"
+                [disabled]="working() !== null || !isAdmin()"
+                (click)="choose(plan)"
+              >
+                @if (working() === plan.id) {
+                  <span class="spinner" aria-hidden="true"></span>
+                  Opening Stripe…
+                } @else {
+                  Switch to {{ plan.name }}
+                }
+              </button>
+            }
+          </div>
+        }
+      </div>
+    </section>
+  }
+
+  <p class="hint footnote">
+    <span class="ms ms--sm" aria-hidden="true">shield</span>
+    <span>
+      SentinelAI never receives your card number. Checkout and the billing portal are hosted by
+      Stripe, and this application holds no payment credentials of any kind.
+    </span>
+  </p>
+</div>
