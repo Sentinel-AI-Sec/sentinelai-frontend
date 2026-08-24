@@ -10,6 +10,7 @@ import {
 import { filter, map, startWith } from 'rxjs';
 
 import { Auth } from './core/auth/auth';
+import { Area } from './core/auth/roles';
 import { Recents } from './core/history/recents';
 import { environment } from './core/config/environment';
 
@@ -19,11 +20,15 @@ interface Crumb {
   link?: string;
 }
 
-/** A side-nav destination. `match` widens the active state to a section, not just one URL. */
+/**
+ * A side-nav destination. `exact` narrows the active state to one URL rather than a section;
+ * `area` is the permission it is shown under, the same one its route is guarded with.
+ */
 interface NavItem {
   label: string;
   icon: string;
   link: string;
+  area: Area;
   exact?: boolean;
 }
 
@@ -75,19 +80,35 @@ export class App {
     { initialValue: this.router.url },
   );
 
-  protected readonly navItems: NavItem[] = [
-    { label: 'Dashboard', icon: 'space_dashboard', link: '/', exact: true },
-    { label: 'Projects', icon: 'folder_open', link: '/projects' },
+  /**
+   * Every destination the console has, in order. What a given role actually sees is
+   * {@link visibleNav} — this list is not rendered directly.
+   */
+  private readonly navItems: NavItem[] = [
+    { label: 'Dashboard', icon: 'space_dashboard', link: '/', area: 'dashboard', exact: true },
+    { label: 'Projects', icon: 'folder_open', link: '/projects', area: 'projects' },
     // Onboarding, and deliberately in the everyday nav rather than tucked behind Projects: the
     // machine token is not stored anywhere, so this is a screen people come back to.
-    { label: 'Set up CI', icon: 'rocket_launch', link: '/setup' },
+    { label: 'Set up CI', icon: 'rocket_launch', link: '/setup', area: 'setup' },
     // Reviewing, not starting. Scans come from the Action; /scans/new still exists for driving
     // the pipeline by hand, but it is not an everyday surface and is gated on admin.
-    { label: 'Scans', icon: 'history', link: '/scans' },
-    { label: 'Debate', icon: 'forum', link: '/debate' },
-    { label: 'Billing', icon: 'credit_card', link: '/billing' },
-    { label: 'Account', icon: 'manage_accounts', link: '/account' },
+    { label: 'Scans', icon: 'history', link: '/scans', area: 'scans' },
+    { label: 'Debate', icon: 'forum', link: '/debate', area: 'debate' },
+    { label: 'Billing', icon: 'credit_card', link: '/billing', area: 'billing' },
+    { label: 'Account', icon: 'manage_accounts', link: '/account', area: 'account' },
   ];
+
+  /**
+   * The destinations this role holds.
+   *
+   * Filtered rather than hidden with `@if` per link, so the nav has no gaps to style around and
+   * the reader of the template does not have to reconstruct the permission table from seven
+   * scattered conditions. The same `area` gates the route, so nothing here leads anywhere the
+   * guard would bounce.
+   */
+  protected readonly visibleNav = computed(() =>
+    this.navItems.filter((item) => this.auth.canSee(item.area)),
+  );
 
   /** True on the auth screens, which render without any chrome at all. */
   protected readonly bare = computed(() => {

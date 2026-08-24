@@ -6,7 +6,7 @@
           <span class="chip__dot" aria-hidden="true"></span>
           session active
         </span>
-        <span class="mono">{{ auth.role() }}</span>
+        <span class="mono">{{ auth.uiRole() }}</span>
       </p>
       <h1>Security console</h1>
       <p class="lede">
@@ -15,16 +15,27 @@
       </p>
     </div>
 
-    <div class="page-head__actions">
-      <a class="btn btn--ghost" routerLink="/projects">
-        <span class="ms ms--sm" aria-hidden="true">folder_open</span>
-        Projects
-      </a>
-      <a class="btn btn--primary" routerLink="/scans/new">
-        <span class="ms ms--sm" aria-hidden="true">radar</span>
-        New scan
-      </a>
-    </div>
+    <!--
+      Both actions are role-gated, so this row can end up empty — hence the @if around the whole
+      div rather than around each link, which would otherwise leave a stray flex container
+      holding the header's spacing open with nothing in it.
+    -->
+    @if (showProjects() || showNewScan()) {
+      <div class="page-head__actions">
+        @if (showProjects()) {
+          <a class="btn btn--ghost" routerLink="/projects">
+            <span class="ms ms--sm" aria-hidden="true">folder_open</span>
+            Projects
+          </a>
+        }
+        @if (showNewScan()) {
+          <a class="btn btn--primary" routerLink="/scans/new">
+            <span class="ms ms--sm" aria-hidden="true">radar</span>
+            New scan
+          </a>
+        }
+      </div>
+    }
   </header>
 
   @if (demoMode) {
@@ -37,23 +48,27 @@
 
   <!-- Only figures the API can actually stand behind. See the class comment. -->
   <div class="grid grid--kpi">
-    <div class="kpi">
-      <div class="kpi__head">
-        <span class="kpi__label">Registered projects</span>
-        <span class="ms ms--sm" aria-hidden="true" style="color: var(--accent-soft)">folder_open</span>
+    @if (showProjects()) {
+      <div class="kpi">
+        <div class="kpi__head">
+          <span class="kpi__label">Registered projects</span>
+          <span class="ms ms--sm" aria-hidden="true" style="color: var(--accent-soft)">
+            folder_open
+          </span>
+        </div>
+        @if (projectsLoading()) {
+          <div class="skeleton" style="height: 2.1rem; width: 3.5rem"></div>
+        } @else if (projectsError()) {
+          <span class="kpi__value kpi__value--danger">—</span>
+        } @else {
+          <span class="kpi__value">{{ projects().length }}</span>
+        }
+        <div class="kpi__foot">
+          <span>Repositories this tenant may scan</span>
+          <a class="link-btn" routerLink="/projects">manage</a>
+        </div>
       </div>
-      @if (projectsLoading()) {
-        <div class="skeleton" style="height: 2.1rem; width: 3.5rem"></div>
-      } @else if (projectsError()) {
-        <span class="kpi__value kpi__value--danger">—</span>
-      } @else {
-        <span class="kpi__value">{{ projects().length }}</span>
-      }
-      <div class="kpi__foot">
-        <span>Repositories this tenant may scan</span>
-        <a class="link-btn" routerLink="/projects">manage</a>
-      </div>
-    </div>
+    }
 
     <div class="kpi">
       <div class="kpi__head">
@@ -85,7 +100,7 @@
         <span class="ms ms--sm" aria-hidden="true" style="color: var(--accent-soft)">key</span>
       </div>
       <div class="kpi__row">
-        <span class="chip chip--accent">{{ auth.role() }}</span>
+        <span class="chip chip--accent">{{ auth.uiRole() }}</span>
         @if (canWrite()) {
           <span class="chip chip--ok">can submit scans</span>
         } @else {
@@ -279,44 +294,76 @@
         }
       </section>
 
-      <section class="card">
-        <div class="card__head">
-          <div>
-            <h2 class="card__title">
-              <span class="ms ms--sm" aria-hidden="true">folder_open</span>
-              Projects
-            </h2>
-            <p class="card__sub">registered repositories</p>
+      <!--
+        Dev only. The playground drives the debate engine directly rather than reading a scan's
+        output, so it is the one place in the console where a request is not about a run that
+        already happened — which is why `admin`, who runs the tenant, does not get it either.
+      -->
+      @if (showDebate()) {
+        <section class="card">
+          <div class="card__head">
+            <div>
+              <h2 class="card__title">
+                <span class="ms ms--sm" aria-hidden="true">forum</span>
+                Debate playground
+              </h2>
+              <p class="card__sub">run the agents over a graph by hand</p>
+            </div>
           </div>
-          <a class="link-btn" routerLink="/projects">all</a>
-        </div>
 
-        @if (projectsLoading()) {
-          <div class="skeleton" style="height: 3.5rem"></div>
-          <div class="skeleton" style="height: 3.5rem"></div>
-        } @else if (projectsError(); as message) {
-          <p class="error" role="alert">
-            <span class="ms ms--sm" aria-hidden="true">error</span>
-            {{ message }}
-            <button type="button" class="link-btn" (click)="loadProjects()">retry</button>
+          <p class="hint">
+            Red proposes a path, Blue attacks it, the Reporter concludes — the same three agents
+            the pipeline's Debate stage runs, but on input you supply and with the transcript
+            kept.
           </p>
-        } @else if (projects().length === 0) {
-          <div class="empty">
-            <span class="ms ms--lg" aria-hidden="true">create_new_folder</span>
-            <span>No repositories registered yet.</span>
-            <a class="btn btn--sm" routerLink="/projects">Register one</a>
+
+          <a class="btn btn--sm" routerLink="/debate">
+            Open the playground
+            <span class="ms ms--sm" aria-hidden="true">arrow_forward</span>
+          </a>
+        </section>
+      }
+
+      @if (showProjects()) {
+        <section class="card">
+          <div class="card__head">
+            <div>
+              <h2 class="card__title">
+                <span class="ms ms--sm" aria-hidden="true">folder_open</span>
+                Projects
+              </h2>
+              <p class="card__sub">registered repositories</p>
+            </div>
+            <a class="link-btn" routerLink="/projects">all</a>
           </div>
-        } @else {
-          <ul class="projects">
-            @for (project of projects().slice(0, 5); track project.projectId) {
-              <li class="projects__row">
-                <span class="projects__name truncate">{{ repoName(project.repoUrl) }}</span>
-                <span class="chip chip--mute">{{ project.defaultBranch }}</span>
-              </li>
-            }
-          </ul>
-        }
-      </section>
+
+          @if (projectsLoading()) {
+            <div class="skeleton" style="height: 3.5rem"></div>
+            <div class="skeleton" style="height: 3.5rem"></div>
+          } @else if (projectsError(); as message) {
+            <p class="error" role="alert">
+              <span class="ms ms--sm" aria-hidden="true">error</span>
+              {{ message }}
+              <button type="button" class="link-btn" (click)="loadProjects()">retry</button>
+            </p>
+          } @else if (projects().length === 0) {
+            <div class="empty">
+              <span class="ms ms--lg" aria-hidden="true">create_new_folder</span>
+              <span>No repositories registered yet.</span>
+              <a class="btn btn--sm" routerLink="/projects">Register one</a>
+            </div>
+          } @else {
+            <ul class="projects">
+              @for (project of projects().slice(0, 5); track project.projectId) {
+                <li class="projects__row">
+                  <span class="projects__name truncate">{{ repoName(project.repoUrl) }}</span>
+                  <span class="chip chip--mute">{{ project.defaultBranch }}</span>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+      }
     </aside>
   </div>
 </div>

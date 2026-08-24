@@ -8,6 +8,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { AccountApi } from '../../core/api/account-api';
 import { Auth, Session } from '../../core/auth/auth';
+import { toUiRole } from '../../core/auth/roles';
 import { AccountPage } from './account-page';
 
 /** Stands in for the real login page so `router.navigate(['/login'])` has somewhere to land. */
@@ -22,6 +23,14 @@ class FakeAuth {
   ) {}
   role() {
     return this.roleValue;
+  }
+  /**
+   * The console's name for the role. Derived here rather than hard-coded, so a double built
+   * with `analyst` shows `dev` exactly as the real service would — this screen renders both,
+   * and a stub that answered a fixed string could not tell the two apart.
+   */
+  uiRole() {
+    return toUiRole(this.roleValue);
   }
   tenantId() {
     return this.tenantIdValue;

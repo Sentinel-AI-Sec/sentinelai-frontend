@@ -23,6 +23,12 @@ interface Stage {
  * the tenant's registered projects (a real list endpoint), what this browser has opened (a local
  * index, labelled as one), and the jump-in-by-id route the PR comment gives you.
  *
+ * <b>The screen is one dashboard, shaped by role</b>, not three dashboards. The parts a role does
+ * not hold are dropped — a `user` gets no projects tile and no by-hand scan entry point, a `dev`
+ * additionally gets the debate playground. Splitting it per role would mean three files that all
+ * have to be remembered when a tile changes, and the tiles they share outnumber the ones they do
+ * not.
+ *
  * `GET /v1/scans` has since landed, so a fleet-wide list is no longer something the UI would have
  * to invent — `/scans` renders it. What is still off the table is a *derived* tile: the list
  * endpoints expose no total (see `docs/Read_API.md`), so "247 scans this week" would mean counting
@@ -52,6 +58,15 @@ export class HomePage {
   readonly scopes = computed(() => this.auth.session()?.scopes ?? []);
   readonly canWrite = computed(() => this.scopes().includes('scan:write'));
 
+  /**
+   * The role-varying parts of this screen, named after the areas in `core/auth/roles.ts` rather
+   * than after the roles themselves. A tile asking "is this a dev?" would have to be revisited
+   * every time the permission table moves; one asking "may they reach the debate?" does not.
+   */
+  readonly showProjects = computed(() => this.auth.canSee('projects'));
+  readonly showNewScan = computed(() => this.auth.canSee('newScan'));
+  readonly showDebate = computed(() => this.auth.canSee('debate'));
+
   protected readonly stages: Stage[] = [
     { name: 'Received', icon: 'inbox', blurb: 'Bundle ingested, secrets redacted at the door.' },
     { name: 'Normalize', icon: 'transform', blurb: 'Scanner output folded into one finding shape.' },
@@ -62,7 +77,11 @@ export class HomePage {
   ];
 
   constructor() {
-    this.loadProjects();
+    // Only for the roles with somewhere to show it. A `user` has no projects tile and no
+    // projects card, so fetching the list would be a request whose response is dropped — and
+    // `retry` on a failure they cannot see would be worse than not asking.
+    if (this.showProjects()) this.loadProjects();
+    else this.projectsLoading.set(false);
   }
 
   loadProjects(): void {

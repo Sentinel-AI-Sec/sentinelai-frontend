@@ -17,15 +17,20 @@ const routes = [
   { path: 'scans/:id/graph', component: Blank },
 ];
 
-/** A session shaped like the real one, written where `Auth` restores it from. */
-function signIn(): void {
+/**
+ * A session shaped like the real one, written where `Auth` restores it from.
+ *
+ * The role is the backend's claim, not the console's name for it — `analyst`, not `dev` — so
+ * these tests exercise the translation in `core/auth/roles.ts` rather than stepping over it.
+ */
+function signIn(role = 'analyst'): void {
   localStorage.setItem(
     'sentinelai.session',
     JSON.stringify({
       accessToken: 'access',
       refreshToken: 'refresh',
       tenantId: 'tenant-1',
-      role: 'analyst',
+      role,
       scopes: ['scan:read'],
       expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
       refreshExpiresAt: new Date(Date.now() + 86_400_000).toISOString(),
@@ -92,9 +97,68 @@ describe('App shell', () => {
     expect(host.querySelector('.sidenav')).not.toBeNull();
 
     const text = textOf(fixture);
-    expect(text).toContain('analyst');
+    // The console's name for the role, not the token's claim — the nav beside it is built from
+    // the former, so this is the one the chrome has to agree with.
+    expect(text).toContain('dev');
     expect(text).toContain('tenant-1');
     expect(text).toContain('Projects');
+  });
+
+  /**
+   * The side-nav labels, in order — what a role is actually offered.
+   *
+   * Scoped to the Main group so the "Recent" links, which share the `.navlink` class, do not
+   * leak in; and read off the label span rather than the anchor, whose `textContent` would also
+   * carry the Material icon's glyph name.
+   */
+  function navLabels(fixture: ComponentFixture<App>): string[] {
+    const host = fixture.nativeElement as HTMLElement;
+    return [...host.querySelectorAll('.sidenav__group[aria-label="Main"] .navlink')].map(
+      (link) => (link.querySelector('span:not(.ms)')?.textContent ?? '').trim(),
+    );
+  }
+
+  it('offers a dev every destination, the debate playground included', async () => {
+    signIn('analyst');
+    const fixture = await render();
+
+    expect(navLabels(fixture)).toEqual([
+      'Dashboard',
+      'Projects',
+      'Set up CI',
+      'Scans',
+      'Debate',
+      'Billing',
+      'Account',
+    ]);
+  });
+
+  it('keeps an admin out of the debate playground but leaves the tenant controls', async () => {
+    signIn('admin');
+    const fixture = await render();
+
+    const labels = navLabels(fixture);
+    expect(labels).not.toContain('Debate');
+    expect(labels).toContain('Projects');
+    expect(labels).toContain('Set up CI');
+  });
+
+  it('offers a user only their own account, billing and the scans that ran', async () => {
+    // The whole point of the role: no project registration and no CI setup, both of which hand
+    // out something that outlives the session.
+    signIn('viewer');
+    const fixture = await render();
+
+    expect(navLabels(fixture)).toEqual(['Dashboard', 'Scans', 'Billing', 'Account']);
+  });
+
+  it('treats a role it has never heard of as the least privileged one', async () => {
+    // Not as an error, and not by falling through to whatever sorts next to it: a claim this
+    // build does not recognise should grant the minimum.
+    signIn('superintendent');
+    const fixture = await render();
+
+    expect(navLabels(fixture)).toEqual(['Dashboard', 'Scans', 'Billing', 'Account']);
   });
 
   it('strips the chrome entirely on the auth screens', async () => {

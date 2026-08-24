@@ -77,9 +77,13 @@
             [attr.aria-expanded]="userMenuOpen()"
             (click)="toggleUserMenu()"
           >
-            <span class="usermenu__avatar" aria-hidden="true">{{ (auth.role() ?? '?')[0] }}</span>
+            <!-- The console role, not the token's claim: the nav beside it is built from this
+                 one, and a header reading "analyst" over a dev's navigation invites the reader to
+                 work out which of the two is lying. The raw claim is on /account, where the
+                 subject is the token itself. -->
+            <span class="usermenu__avatar" aria-hidden="true">{{ auth.uiRole()[0] }}</span>
             <span class="usermenu__who">
-              <span class="usermenu__role">{{ auth.role() }}</span>
+              <span class="usermenu__role">{{ auth.uiRole() }}</span>
               <span class="usermenu__tenant mono">{{ auth.tenantId() }}</span>
             </span>
             <span class="ms ms--sm" aria-hidden="true">expand_more</span>
@@ -89,7 +93,7 @@
             <div class="usermenu__panel rise">
               <div class="usermenu__head">
                 <div class="usermenu__label">Signed in as</div>
-                <div class="usermenu__role">{{ auth.role() }}</div>
+                <div class="usermenu__role">{{ auth.uiRole() }}</div>
                 <code class="usermenu__tenant">{{ auth.tenantId() }}</code>
               </div>
 
@@ -114,7 +118,7 @@
       <aside class="sidenav" [class.sidenav--open]="navOpen()">
         <nav class="sidenav__group" aria-label="Main">
           <div class="sidenav__label">Console</div>
-          @for (item of navItems; track item.link) {
+          @for (item of visibleNav(); track item.link) {
             <a
               class="navlink"
               [routerLink]="item.link"

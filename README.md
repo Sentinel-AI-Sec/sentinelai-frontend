@@ -37,21 +37,40 @@ npm run build     # production build
 
 ## What it shows
 
-| Route | What it is |
-|---|---|
-| `/login`, `/register` | The auth canvas. Everything else is behind a guard. |
-| `/` | Console: registered projects, what this browser has opened, and the jump-in-by-id entry points. |
-| `/projects` | The repositories this tenant may scan, with the project id built to be copied. |
-| `/setup` | Set up CI: the three values `sentinelai.yml` reads, collected in one place — the API URL, a project id, and a machine token minted on the spot. |
-| `/scans/new` | Submits a bundle — the multipart upload the GitHub Action normally performs. |
-| `/scans/:id/ops` | The pipeline: real stage/status as a stepper, and the stage runners. |
-| `/scans/:id/findings` | Every finding on a scan — server-side layer and severity filters, cursor paging. |
-| `/scans/:id/graph` | The resource graph, drawn: layer columns, joins coloured by confidence. |
-| `/reports/:id` | The draft audit: summary, severity posture, candidate chains, refuted chains, citations. |
-| `/debate` | Runs the Red/Blue/Reporter debate directly and renders the transcript. |
-| `/pricing` | Plans and FAQ. The only route outside the auth guard. |
-| `/billing` | This organisation's subscription, and the hand-off to Stripe. |
-| `/account` | Who you are signed in as, the scopes that gate everything, and the delete path. |
+| Route | Who sees it | What it is |
+|---|---|---|
+| `/login`, `/register` | anyone | The auth canvas. Everything else is behind a guard. |
+| `/` | all | Console: what this browser has opened and the jump-in-by-id entry points, with the tiles a role does not hold dropped. |
+| `/projects` | admin, dev | The repositories this tenant may scan, with the project id built to be copied. |
+| `/setup` | admin, dev | Set up CI: the three values `sentinelai.yml` reads, collected in one place — the API URL, a project id, and a machine token minted on the spot. |
+| `/scans/new` | admin, dev | Submits a bundle — the multipart upload the GitHub Action normally performs. |
+| `/scans` | all | Every scan this tenant has run, filterable by project and status. |
+| `/scans/:id/ops` | all | The pipeline: real stage/status as a stepper, and the stage runners. |
+| `/scans/:id/findings` | all | Every finding on a scan — server-side layer and severity filters, cursor paging. |
+| `/scans/:id/graph` | all | The resource graph, drawn: layer columns, joins coloured by confidence. |
+| `/reports/:id` | all | The draft audit: summary, severity posture, candidate chains, refuted chains, citations. |
+| `/debate` | dev | Runs the Red/Blue/Reporter debate directly and renders the transcript. |
+| `/pricing` | anyone | Plans and FAQ. The only route outside the auth guard. |
+| `/billing` | all | This organisation's subscription, and the hand-off to Stripe. |
+| `/account` | all | Who you are signed in as, the scopes that gate everything, and the delete path. |
+
+### The three roles
+
+`user`, `admin` and `dev` — the console's vocabulary, not the API's. The backend issues
+`admin`, `analyst` or `viewer` in the token's role claim; `core/auth/roles.ts` is the single
+place the two meet, and an unrecognised claim resolves to `user`, the least privileged of the
+three.
+
+- **`user`** — their account, what it costs, and the scans that have run. No project
+  registration and no CI setup: both hand out something that outlives the session.
+- **`admin`** — runs the tenant, so everything above plus projects and CI setup. Not the debate
+  playground, which drives the reasoning engine rather than reading its output.
+- **`dev`** — everything, the playground included.
+
+The side navigation and the route guards read that same table, so a link that is hidden is also
+unreachable by URL. **None of it is a security control** — the API gates the same actions on the
+same token and answers 403 regardless. Hiding a nav item stops someone being shown a door that
+would only refuse them; it does not lock the door.
 
 Each chain renders as a vertical path rather than a table, because the ordering *is* the
 content — a chain is a claim about reaching something. The join confidence sits on the

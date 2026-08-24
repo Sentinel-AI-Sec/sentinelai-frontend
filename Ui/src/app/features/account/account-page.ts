@@ -42,8 +42,8 @@ export class AccountPage {
 
   readonly confirmationMatches = () => this.confirmation().trim() === (this.auth.tenantId() ?? '');
 
-  /** The role's first letter, for the identity disc. */
-  readonly initial = () => (this.auth.role() ?? '?')[0].toUpperCase();
+  /** The console role's first letter, for the identity disc — matching the shell's avatar. */
+  readonly initial = () => this.auth.uiRole()[0].toUpperCase();
 
   /**
    * The stored session. Null between sign-out and the navigation that follows it, so the

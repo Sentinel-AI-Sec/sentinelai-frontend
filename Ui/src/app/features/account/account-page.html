@@ -21,8 +21,21 @@
       <span class="identity__avatar" aria-hidden="true">{{ initial() }}</span>
 
       <div class="identity__who">
+        <!--
+          Both, and this is the one screen that shows both. Everywhere else the console names the
+          role its own way; here the subject is the token, so what the claim literally says has to
+          be readable — it is what the API authorises against, and it is what someone comparing
+          this screen against a decoded JWT expects to find.
+        -->
         <div class="identity__role">
-          <span class="chip chip--accent">{{ auth.role() }}</span>
+          <span class="chip chip--accent">{{ auth.uiRole() }}</span>
+          @if (auth.role(); as claim) {
+            @if (claim !== auth.uiRole()) {
+              <span class="chip chip--mute" title="The role claim in this session's token">
+                token role: <code>{{ claim }}</code>
+              </span>
+            }
+          }
         </div>
         <div class="identity__tenant">
           <span class="identity__label">Tenant</span>

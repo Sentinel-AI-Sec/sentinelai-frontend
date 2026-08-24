@@ -3,6 +3,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, catchError, map, of, tap } from 'rxjs';
 
 import { environment } from '../config/environment';
+import { Area, UiRole, canSee, toUiRole } from './roles';
 
 /**
  * What `POST /v1/auth/login` returns inside the envelope.
@@ -63,9 +64,27 @@ export class Auth {
   readonly role = computed(() => this.state()?.role ?? null);
   readonly tenantId = computed(() => this.state()?.tenantId ?? null);
 
+  /**
+   * The signed-in role as the console names it — `user`, `admin` or `dev` — translated from
+   * the backend's claim by {@link toUiRole}. {@link role} still returns the claim verbatim,
+   * because the account screen shows what the token actually says.
+   */
+  readonly uiRole = computed<UiRole>(() => toUiRole(this.state()?.role));
+
   /** Whether the current session's token was issued with the given scope (SEC-32). */
   hasScope(scope: string): boolean {
     return this.state()?.scopes.includes(scope) ?? false;
+  }
+
+  /**
+   * Whether the signed-in role reaches an area of the console.
+   *
+   * A method rather than a computed because it takes an argument, and reactive all the same:
+   * it reads {@link uiRole}, so a template calling `auth.canSee('debate')` is re-evaluated when
+   * the session changes — the nav rebuilds itself on sign-out without anything subscribing.
+   */
+  canSee(area: Area): boolean {
+    return canSee(this.uiRole(), area);
   }
 
   /**

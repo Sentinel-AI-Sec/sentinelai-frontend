@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 
 import { authGuard } from './core/auth/auth-guard';
+import { areaGuard } from './core/auth/role-guard';
 
 /**
  * `/`, `/login` and `/reports/:id` are the original SEC-42 read-only surface — no route there
@@ -9,6 +10,11 @@ import { authGuard } from './core/auth/auth-guard';
  * management. Each of those screens gates its own write actions on the signed-in role/scope
  * (the backend enforces the same checks; the UI gate exists so someone without permission sees
  * why, rather than a raw 403).
+ *
+ * Routes that not every role holds carry `areaGuard` alongside `authGuard`, in that order —
+ * signed out you get the login redirect and your `returnUrl`; signed in as the wrong role you get
+ * the dashboard. The guard and the side navigation read the same table in `core/auth/roles.ts`,
+ * so a link that is hidden is also unreachable by URL, and neither can drift from the other.
  *
  * `/scans/:id/graph` and `/scans/:id/findings` are read-only views of the two SEC-40 endpoints
  * that had no screen at all before — the resource graph and the findings page. They sit under
@@ -40,7 +46,7 @@ export const routes: Routes = [
   },
   {
     path: 'projects',
-    canActivate: [authGuard],
+    canActivate: [authGuard, areaGuard('projects')],
     loadComponent: () => import('./features/projects/projects-page').then((m) => m.ProjectsPage),
     title: 'Projects · SentinelAI',
   },
@@ -49,7 +55,7 @@ export const routes: Routes = [
     // id, and a machine token. Sits beside /projects rather than under it because two of the
     // three are not about any one project.
     path: 'setup',
-    canActivate: [authGuard],
+    canActivate: [authGuard, areaGuard('setup')],
     loadComponent: () => import('./features/setup/setup-page').then((m) => m.SetupPage),
     title: 'Set up CI · SentinelAI',
   },
@@ -63,10 +69,11 @@ export const routes: Routes = [
     title: 'Scan history · SentinelAI',
   },
   {
-    // Kept, but off the navigation and gated on admin inside the component. Scans are started by
-    // the Action; this is the by-hand equivalent, for driving the pipeline without a CI run.
+    // Kept, but off the navigation, closed to `user` by the guard, and gated again on admin
+    // inside the component. Scans are started by the Action; this is the by-hand equivalent, for
+    // driving the pipeline without a CI run.
     path: 'scans/new',
-    canActivate: [authGuard],
+    canActivate: [authGuard, areaGuard('newScan')],
     loadComponent: () => import('./features/scans/new-scan-page').then((m) => m.NewScanPage),
     title: 'Submit a scan · SentinelAI',
   },
@@ -99,7 +106,7 @@ export const routes: Routes = [
   },
   {
     path: 'debate',
-    canActivate: [authGuard],
+    canActivate: [authGuard, areaGuard('debate')],
     loadComponent: () => import('./features/debate/debate-page').then((m) => m.DebatePage),
     title: 'Debate playground · SentinelAI',
   },
