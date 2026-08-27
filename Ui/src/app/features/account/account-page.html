@@ -114,6 +114,228 @@
     </section>
   }
 
+  @if (isAdmin) {
+    <section class="card members">
+      <div class="card__head">
+        <h2 class="card__title">
+          <span class="ms ms--sm" aria-hidden="true">group</span>
+          Members
+        </h2>
+        <button
+          type="button"
+          class="icon-btn"
+          aria-label="Reload members"
+          title="Reload members"
+          [disabled]="membersLoading()"
+          (click)="loadMembers()"
+        >
+          <span class="ms ms--sm" aria-hidden="true">refresh</span>
+        </button>
+      </div>
+
+      <p class="field-hint">
+        <!--
+          The backend's names, not the console's — everywhere else `analyst` renders as `dev`.
+          The value picked here is what goes into that person's token and what the API compares
+          against, so a translated label would be a role an admin could never verify.
+        -->
+        Roles are named as the API stores them. <code>admin</code> runs the organisation,
+        <code>analyst</code> can start scans, <code>viewer</code> can only read results.
+      </p>
+
+      <div class="add-member">
+        <div class="add-member__row">
+          <div class="field add-member__email">
+            <label for="new-member-email">Add someone by email</label>
+            <input
+              id="new-member-email"
+              name="new-member-email"
+              type="email"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="colleague@example.com"
+              [ngModel]="newEmail()"
+              (ngModelChange)="newEmail.set($event)"
+            />
+          </div>
+
+          <div class="field add-member__role">
+            <label for="new-member-role">Role</label>
+            <select
+              id="new-member-role"
+              name="new-member-role"
+              class="members__role"
+              [ngModel]="newRole()"
+              (ngModelChange)="newRole.set($event)"
+            >
+              @for (role of roles; track role) {
+                <option [value]="role">{{ role }}</option>
+              }
+            </select>
+          </div>
+
+          <button
+            type="button"
+            class="btn"
+            [disabled]="adding() || !canAdd()"
+            (click)="addMember()"
+          >
+            @if (adding()) {
+              <span class="spinner" aria-hidden="true"></span>
+              Adding…
+            } @else {
+              <span class="ms ms--sm" aria-hidden="true">person_add</span>
+              Add member
+            }
+          </button>
+        </div>
+
+        <p class="field-hint">
+          <!--
+            Said before they try rather than after it fails. This endpoint moves an account that
+            already exists and cannot create one, which is not what "add someone by email"
+            usually implies — leaving people to discover it from a 404 makes a working rule look
+            like a broken lookup.
+          -->
+          The address must already have a SentinelAI account. Adding someone moves their account
+          into this organisation — an account belongs to one organisation at a time.
+        </p>
+
+        @if (addError(); as message) {
+          <p class="error" role="alert">
+            <span class="ms ms--sm" aria-hidden="true">error</span>
+            <span>{{ message }}</span>
+          </p>
+        }
+
+        @if (added(); as result) {
+          <p class="gate" role="status">
+            <span class="ms ms--sm" aria-hidden="true">check_circle</span>
+            <span>
+              <strong>{{ result.member.email }}</strong> joined as
+              <code>{{ result.member.role }}</code
+              >.
+              @if (result.previousTenantPurged) {
+                <!--
+                  Never silent. They were the only member of their old organisation, so it and
+                  everything in it was destroyed by this click — an admin who is not told that
+                  has no way to find out.
+                -->
+                They were the only member of their previous organisation, so it was permanently
+                deleted along with
+                {{ result.previousTenantRowsDeleted }} row(s) of its data.
+              }
+              They will need to sign in again.
+            </span>
+          </p>
+        }
+      </div>
+
+      @if (membersLoading()) {
+        <p class="hint">
+          <span class="spinner" aria-hidden="true"></span>
+          Loading members…
+        </p>
+      } @else if (membersError(); as message) {
+        <p class="error" role="alert">
+          <span class="ms ms--sm" aria-hidden="true">error</span>
+          <span>{{ message }}</span>
+        </p>
+      } @else {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Member</th>
+                <th scope="col">Scopes</th>
+                <th scope="col">Role</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (member of members(); track member.userId) {
+                <tr>
+                  <td>
+                    <span class="members__email">{{ member.email }}</span>
+                    @if (isSelf(member)) {
+                      <span class="chip chip--mute">you</span>
+                    }
+                    @if (!member.isEmailVerified) {
+                      <span class="hint">unverified</span>
+                    }
+                  </td>
+
+                  <td>
+                    <div class="identity__chips">
+                      @for (scope of member.scopes; track scope) {
+                        <span class="chip chip--ok">{{ scope }}</span>
+                      }
+                    </div>
+                  </td>
+
+                  <td>
+                    @if (isSelf(member)) {
+                      <!--
+                        Rendered as text rather than a disabled select. An admin cannot change
+                        their own role — that rule is what keeps the organisation from reaching
+                        zero admins — and a control that exists but never works reads as broken.
+                      -->
+                      <span class="chip chip--accent">{{ member.role }}</span>
+                    } @else {
+                      <select
+                        class="members__role"
+                        [attr.aria-label]="'Role for ' + member.email"
+                        [disabled]="savingMemberId() !== null"
+                        [value]="member.role"
+                        (change)="changeRole(member, $any($event.target).value)"
+                      >
+                        @for (role of roles; track role) {
+                          <option [value]="role" [selected]="role === member.role">
+                            {{ role }}
+                          </option>
+                        }
+                      </select>
+
+                      @if (savingMemberId() === member.userId) {
+                        <span class="spinner" aria-hidden="true"></span>
+                      }
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="3" class="hint">No members found.</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        @if (memberError(); as message) {
+          <p class="error" role="alert">
+            <span class="ms ms--sm" aria-hidden="true">error</span>
+            <span>{{ message }}</span>
+          </p>
+        }
+
+        @if (changed(); as member) {
+          <p class="gate" role="status">
+            <span class="ms ms--sm" aria-hidden="true">check_circle</span>
+            <span>
+              <strong>{{ member.email }}</strong> is now <code>{{ member.role }}</code>. The
+              change reaches them when they next sign in — their current access token keeps its
+              old permissions until it expires.
+            </span>
+          </p>
+        }
+      }
+
+      <p class="field-hint">
+        There is no invite flow yet, so this lists the people already in the organisation rather
+        than offering to add one.
+      </p>
+    </section>
+  }
+
   <section class="section">
     <div class="section__head">
       <h2 class="danger__heading">

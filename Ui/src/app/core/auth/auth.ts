@@ -19,6 +19,7 @@ export interface AuthTokens {
   refreshToken: string;
   refreshTokenExpiresAt: string;
   tenantId: string;
+  userId: string;
   role: string;
   scopes: string[];
 }
@@ -36,6 +37,15 @@ export interface Session {
   accessToken: string;
   refreshToken: string;
   tenantId: string;
+
+  /**
+   * Who is signed in. Optional because a session stored before this field existed is still
+   * restored rather than discarded — a schema addition should not sign everybody out. Screens
+   * that use it must therefore treat "unknown" as a real case; the members table does, by
+   * falling back to the API's own refusal rather than assuming a row is not the caller's.
+   */
+  userId?: string;
+
   role: string;
   scopes: string[];
   expiresAt: string;
@@ -63,6 +73,9 @@ export class Auth {
   readonly isAuthenticated = computed(() => this.state() !== null);
   readonly role = computed(() => this.state()?.role ?? null);
   readonly tenantId = computed(() => this.state()?.tenantId ?? null);
+
+  /** The signed-in user's id, or null when the stored session predates the field. */
+  readonly userId = computed(() => this.state()?.userId ?? null);
 
   /**
    * The signed-in role as the console names it — `user`, `admin` or `dev` — translated from
@@ -118,6 +131,9 @@ export class Auth {
         accessToken: 'demo-token',
         refreshToken: 'demo-refresh',
         tenantId: 'demo-tenant',
+        // Matches the admin row in `AccountApi`'s demo members, so the members table shows the
+        // self-row as un-editable the way it does against a real backend.
+        userId: 'demo-user-1',
         role: 'analyst',
         scopes: ['scan:read', 'report:read'],
         expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
@@ -203,6 +219,7 @@ function toSession(tokens: AuthTokens): Session {
     accessToken: tokens.accessToken,
     refreshToken: tokens.refreshToken,
     tenantId: tokens.tenantId,
+    userId: tokens.userId,
     role: tokens.role,
     scopes: tokens.scopes ?? [],
     expiresAt: tokens.accessTokenExpiresAt,

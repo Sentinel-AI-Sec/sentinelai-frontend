@@ -1,6 +1,7 @@
 {
   "/v1": {
     "target": "https://sentinelaiapi-app-20260818105221.orangemeadow-4eb00442.swedencentral.azurecontainerapps.io",
+    // "target": "http://localhost:5227",
     "secure": true,
     "changeOrigin": true,
     "logLevel": "info"

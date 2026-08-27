@@ -72,6 +72,71 @@
   border-top: 1px solid var(--border-soft);
 }
 
+/* ---- Members -------------------------------------------------------------------------------- */
+
+.members {
+  gap: 0.9rem;
+}
+
+.members__email {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/*
+ * The role cell holds a select and, mid-save, a spinner beside it. Fixed alignment rather than
+ * letting the spinner appear and shift the select sideways on every change.
+ */
+.members td:last-child {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.members__role {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-soft);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.members__role:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.add-member {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+/*
+ * Wraps rather than compressing: on a narrow screen the email field shrinking to fit a role
+ * select and a button beside it leaves an input too small to read an address back in.
+ */
+.add-member__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.65rem;
+}
+
+.add-member__email {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.add-member__role {
+  flex: 0 0 auto;
+}
+
 /* ---- Danger zone ---------------------------------------------------------------------------- */
 
 /*
